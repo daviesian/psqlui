@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import re
-from typing import Iterable, Sequence
+from typing import Iterable, Mapping, Sequence
 
 from sqlglot import exp, parse_one
 from sqlglot.errors import ParseError
 
 from .catalog import KeywordCatalog
+from .functions import FunctionCatalog
 from .metadata import MetadataProvider, StaticMetadataProvider
 from .models import (
     AnalysisResult,
@@ -18,6 +19,7 @@ from .models import (
     LintMode,
     Suggestion,
 )
+from .snippets import SnippetCatalog
 
 MAX_SUGGESTIONS = 50
 
@@ -29,11 +31,15 @@ class SqlIntelService:
         self,
         metadata_provider: MetadataProvider | None = None,
         keyword_catalog: KeywordCatalog | None = None,
+        function_catalog: FunctionCatalog | None = None,
+        snippet_catalog: SnippetCatalog | None = None,
         *,
         dialect: str = "postgres",
     ) -> None:
         self._metadata = metadata_provider or StaticMetadataProvider()
         self._keywords = keyword_catalog or KeywordCatalog.default()
+        self._functions = function_catalog or FunctionCatalog.default()
+        self._snippets = snippet_catalog or SnippetCatalog.default()
         self._dialect = dialect
 
     async def prime(self) -> None:
@@ -79,6 +85,8 @@ class SqlIntelService:
         """Return suggestions using a precomputed analysis result."""
 
         suggestions = self._keywords.suggestions_for(analysis.clause)
+        suggestions.extend(self._snippets.suggestions_for(analysis))
+        suggestions.extend(self._functions.suggestions_for(analysis.clause))
         suggestions.extend(await self._metadata.suggestions_for(analysis))
         suggestions.sort(key=lambda item: (-item.score, item.label))
         return suggestions[:MAX_SUGGESTIONS]
@@ -109,6 +117,14 @@ class SqlIntelService:
                     severity=DiagnosticSeverity.WARNING,
                 )
             )
+        if isinstance(expr, exp.Select):
+            if any(isinstance(projection, exp.Star) for projection in expr.expressions):
+                diagnostics.append(
+                    Diagnostic(
+                        message="SELECT * may be expensive; consider listing columns explicitly.",
+                        severity=DiagnosticSeverity.INFO,
+                    )
+                )
         if mode is LintMode.EXECUTION and isinstance(expr, exp.Insert):
             diagnostics.append(
                 Diagnostic(
@@ -116,7 +132,21 @@ class SqlIntelService:
                     severity=DiagnosticSeverity.INFO,
                 )
             )
+        if mode is LintMode.EXECUTION and isinstance(expr, (exp.Drop, exp.TruncateTable)):
+            diagnostics.append(
+                Diagnostic(
+                    message="Destructive DDL detected (DROP/TRUNCATE). Double-check target objects.",
+                    severity=DiagnosticSeverity.WARNING,
+                )
+            )
         return diagnostics
+
+    def update_metadata(self, tables: Mapping[str, Sequence[str]]) -> None:
+        """Replace underlying metadata if the provider supports it."""
+
+        updater = getattr(self._metadata, "update", None)
+        if callable(updater):
+            updater(tables)
 
 
 _CLAUSE_TOKENS: dict[Clause, tuple[str, ...]] = {

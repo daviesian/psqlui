@@ -69,3 +69,48 @@ async def test_empty_buffer_defaults_to_any_clause() -> None:
     analysis = await service.analyze("", 0)
 
     assert analysis.clause is Clause.ANY
+
+
+@pytest.mark.anyio
+async def test_function_suggestions_available_in_select_clause() -> None:
+    service = SqlIntelService()
+    sql = "SELECT "
+
+    analysis = await service.analyze(sql, len(sql))
+    suggestions = await service.suggestions_from_analysis(analysis)
+
+    assert any(entry.type is SuggestionType.FUNCTION and entry.label == "COUNT" for entry in suggestions)
+
+
+@pytest.mark.anyio
+async def test_snippet_suggestions_include_limit_helper() -> None:
+    service = SqlIntelService()
+    sql = "SELECT "
+
+    analysis = await service.analyze(sql, len(sql))
+    suggestions = await service.suggestions_from_analysis(analysis)
+
+    assert any(entry.type is SuggestionType.SNIPPET and "Limit 100" in entry.label for entry in suggestions)
+
+
+@pytest.mark.anyio
+async def test_metadata_updates_drive_identifier_suggestions() -> None:
+    service = SqlIntelService(metadata_provider=StaticMetadataProvider({}))
+    service.update_metadata({"public.books": ("id", "title")})
+    sql = "SELECT * FROM "
+
+    analysis = await service.analyze(sql, len(sql))
+    suggestions = await service.suggestions_from_analysis(analysis)
+
+    labels = [entry.label for entry in suggestions if entry.type is SuggestionType.IDENTIFIER]
+    assert "public.books" in labels
+
+
+@pytest.mark.anyio
+async def test_select_star_triggers_info_lint() -> None:
+    service = SqlIntelService()
+    sql = "SELECT * FROM accounts"
+
+    diagnostics = await service.lint(sql)
+
+    assert any("SELECT *" in diag.message for diag in diagnostics)

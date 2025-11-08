@@ -27,14 +27,8 @@ class StaticMetadataProvider:
     def __init__(self, tables: Mapping[str, Sequence[str]] | None = None) -> None:
         self._tables_full: dict[str, _TableEntry] = {}
         self._tables_short: dict[str, _TableEntry] = {}
-        tables = tables or {}
-        for table_name, columns in tables.items():
-            entry = _TableEntry(label=table_name, columns=tuple(columns))
-            self._tables_full[_normalize(table_name)] = entry
-            short = table_name.split(".")[-1]
-            short_key = _normalize(short)
-            self._tables_short.setdefault(short_key, entry)
-        self._table_list = tuple(self._tables_full.values()) or tuple(self._tables_short.values())
+        self._table_list: tuple[_TableEntry, ...] = ()
+        self.update(tables or {})
 
     async def suggestions_for(self, analysis: AnalysisResult) -> Sequence[Suggestion]:
         clause = analysis.clause
@@ -79,6 +73,19 @@ class StaticMetadataProvider:
         if not tables:
             return self._table_list
         return tuple(tables)
+
+    def update(self, tables: Mapping[str, Sequence[str]]) -> None:
+        """Replace the in-memory catalog used for identifier suggestions."""
+
+        self._tables_full.clear()
+        self._tables_short.clear()
+        for table_name, columns in tables.items():
+            entry = _TableEntry(label=table_name, columns=tuple(columns))
+            self._tables_full[_normalize(table_name)] = entry
+            short = table_name.split(".")[-1]
+            short_key = _normalize(short)
+            self._tables_short.setdefault(short_key, entry)
+        self._table_list = tuple(self._tables_full.values()) or tuple(self._tables_short.values())
 
 
 def _normalize(value: str) -> str:

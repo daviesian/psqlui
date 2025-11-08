@@ -5,7 +5,7 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 ## Current Baseline
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
-- **Latest commit**: `d46f4fb` — "Add SQL intel scaffold and wire into query pad" (SqlIntelService, metadata stub, query pad wiring, async tests)
+- **Latest commit**: `8c47efb` — "Polish SQL intelligence milestone" (function/snippet catalogs, richer linting, metadata refresh UI, expanded tests)
 - **Uncommitted work**: _none (clean tree after latest commit)._
 
 ## Completed So Far
@@ -15,12 +15,12 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 4. Drafted plugin contract covering discovery, lifecycle, capabilities, and trust model.
 5. Added `design/implementation_plan.md` describing near-term milestones (bootstrap, SQL intelligence foundation, plugin loader, navigation/data basics).
 6. Completed Milestone 1 bootstrap: uv-managed project scaffold (`pyproject.toml`, `uv.lock`, `psqlui/` package, Textual placeholder app, tests, tooling config).
-7. Started Milestone 2: implemented `SqlIntelService`, keyword catalog, static metadata provider, lint rules, Textual query pad integration, and async unit tests exercising analysis + suggestions.
+7. Completed Milestone 2 foundations: `SqlIntelService`, keyword/function/snippet catalogs, static metadata provider with refresh hooks, lint rules, Textual query pad integration (with metadata cycling and suggestion preview), and async unit tests covering analysis/suggestions/linting.
 
 ## Outstanding Tasks
-- Enrich SQL intelligence features: hook up real metadata cache, expand rule/suggestion coverage, expose APIs to plugins.
-- Prototype plugin loader/registry to validate capability wiring.
-- Flesh out Textual spike (sidebar, command palette, status) to host SQL intel output in the real query editor.
+- Prototype plugin loader/registry (Milestone 3): entry-point discovery, `PluginContext`, capability wiring, sample plugin + tests.
+- Flesh out Textual spike (Milestone 4): persistent sidebar/query pad layout, command palette, status bar, basic session wiring.
+- Connect SQL intel to the future metadata cache once the connection/session manager lands.
 - Track dev workflow docs + onboarding guides alongside code changes.
 
 ## How to Resume

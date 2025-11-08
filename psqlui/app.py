@@ -49,13 +49,7 @@ class PsqluiApp(App[None]):
     def __init__(self) -> None:
         super().__init__()
         self._config = _load_app_config()
-        sample_metadata = StaticMetadataProvider(
-            {
-                "public.accounts": ("id", "email", "last_login"),
-                "public.orders": ("id", "account_id", "total"),
-                "public.payments": ("id", "order_id", "amount"),
-            }
-        )
+        sample_metadata = StaticMetadataProvider(DEMO_METADATA[0])
         self._sql_service = SqlIntelService(metadata_provider=sample_metadata)
 
     def compose(self) -> ComposeResult:
@@ -64,7 +58,11 @@ class PsqluiApp(App[None]):
         yield Header(show_clock=True)
         yield Container(
             Hero(),
-            QueryPad(self._sql_service),
+            QueryPad(
+                self._sql_service,
+                initial_metadata=DEMO_METADATA[0],
+                metadata_presets=DEMO_METADATA,
+            ),
         )
         yield Footer()
 
@@ -81,3 +79,14 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+DEMO_METADATA = [
+    {
+        "public.accounts": ("id", "email", "last_login"),
+        "public.orders": ("id", "account_id", "total"),
+        "public.payments": ("id", "order_id", "amount"),
+    },
+    {
+        "analytics.sessions": ("id", "user_id", "started_at", "device"),
+        "analytics.events": ("id", "session_id", "name", "payload"),
+    },
+]

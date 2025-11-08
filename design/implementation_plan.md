@@ -29,4 +29,5 @@ Short-term milestones to turn the design docs into a runnable TUI.
 
 ## Tracking & Next Steps
 - Update this file + `design/progress_log.md` after each milestone.
+- Jot a brief note in `design/progress_log.md` at the end of every coding session/commit so future runs inherit the latest context.
 - Use git tags (`milestone-1`, etc.) to mark major checkpoints.
