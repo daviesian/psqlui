@@ -8,6 +8,8 @@ from textual.containers import Container
 from textual.widgets import Footer, Header, Static
 
 from .config import AppConfig, load_config
+from .sqlintel import SqlIntelService, StaticMetadataProvider
+from .widgets import QueryPad
 
 
 class Hero(Static):
@@ -47,12 +49,23 @@ class PsqluiApp(App[None]):
     def __init__(self) -> None:
         super().__init__()
         self._config = _load_app_config()
+        sample_metadata = StaticMetadataProvider(
+            {
+                "public.accounts": ("id", "email", "last_login"),
+                "public.orders": ("id", "account_id", "total"),
+                "public.payments": ("id", "order_id", "amount"),
+            }
+        )
+        self._sql_service = SqlIntelService(metadata_provider=sample_metadata)
 
     def compose(self) -> ComposeResult:
         """Compose the root layout."""
 
         yield Header(show_clock=True)
-        yield Container(Hero())
+        yield Container(
+            Hero(),
+            QueryPad(self._sql_service),
+        )
         yield Footer()
 
     @on("refresh")

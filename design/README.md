@@ -11,6 +11,6 @@ This folder captures the evolving design for a cross-platform terminal UI that l
 - [UI Flows](ui_flows.md) — navigation, key screens, and interaction model.
 - [Roadmap](roadmap.md) — phased plan from prototype to polish.
 - [Ops & Quality](ops_quality.md) — tooling, test strategy, and release hygiene.
-- [Progress Log](progress_log.md) — latest commit context, outstanding tasks, and resume instructions.
+- [Progress Log](progress_log.md) — latest commit context, outstanding tasks, resume instructions (update this after every coding session).
 
 Each doc includes open questions and next actions so we can iterate once the high-level plan is locked in.
