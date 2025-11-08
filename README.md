@@ -23,3 +23,4 @@ uv run python -m psqlui
   [plugins]
   hello-world = true
   ```
+- The app now reads settings (theme, telemetry, plugin toggles) from that same config file; delete the file or remove keys to fall back to defaults.

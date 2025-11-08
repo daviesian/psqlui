@@ -5,8 +5,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 ## Current Baseline
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
-- **Latest commit**: `7e04a02` — Surface hello world plugin via palette
-- **Uncommitted work**: Plugin pane contributions + sidebar host (`psqlui/app.py`, `psqlui/plugins/loader.py`, `psqlui/plugins/providers.py`), sample plugin updates/tests, README note, and this progress log update.
+- **Latest commit**: `54d926c` — Mount plugin panes and document sample
+- **Uncommitted work**: Real config file loading (`psqlui/config.py`, `tests/test_config.py`), plus this progress log update.
 
 ## Completed So Far
 1. Created `design/` hub with product overview, architecture, UI flows, roadmap, and ops/quality strategy.
@@ -23,6 +23,7 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 12. Integrated plugin commands into Textual's command palette via a custom provider, exported it from the plugin package, enhanced the sample plugin to track executions, and expanded tests to cover registry execution + provider hits.
 13. Added builtin plugin discovery inside `PluginLoader` so the repo-shipped `hello-world` sample surfaces without packaging entry points, wired it through the app factory, and covered the flow with loader + app-level tests.
 14. Mounted plugin pane capabilities in a sidebar container, updated the sample plugin to contribute a pane widget, and documented/validated the flow via README guidance plus pytest coverage.
+15. Implemented TOML-based config loading from `~/.config/psqlui/config.toml`, including plugin enablement parsing and regression tests for happy/missing/error cases.
 
 ## Outstanding Tasks
 - Continue Milestone 3 by exposing enable/disable controls in-app, persisting plugin settings, and adding richer sample capabilities (exporters, metadata hooks).
