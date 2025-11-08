@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Callable
 
-from textual import on
+from textual import events, on
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.widgets import Label, ListItem, ListView, Static
@@ -72,6 +72,13 @@ class NavigationSidebar(Container):
             self._unsubscribe()
             self._unsubscribe = None
 
+    async def on_focus(self, event: events.Focus) -> None:
+        await super().on_focus(event)
+        self._report_focus()
+
+    async def on_resize(self, event: events.Resize) -> None:
+        self._report_width(event.size.width)
+
     def _handle_session_update(self, state: SessionState) -> None:
         self._render_connections(state)
         self._render_schemas(state)
@@ -119,12 +126,26 @@ class NavigationSidebar(Container):
         item = event.item
         if isinstance(item, _ProfileListItem):
             self._request_switch(item.profile_name)
+            self._report_focus()
 
     def _request_switch(self, name: str) -> None:
         switcher = getattr(self.app, "switch_profile", None)
         if switcher is None:
             return
         switcher(name)
+
+    def _report_focus(self) -> None:
+        remember = getattr(self.app, "remember_focus", None)
+        if remember is None:
+            return
+        remember("sidebar")
+
+    def _report_width(self, width: int) -> None:
+        remember = getattr(self.app, "remember_sidebar_width", None)
+        if remember is None:
+            return
+        if width > 0:
+            remember(width)
 
 
 class _ProfileListItem(ListItem):

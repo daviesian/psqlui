@@ -101,6 +101,8 @@ class PsqluiApp(App[None]):
             self._config = self._config.with_active_profile(self._session_manager.state.profile.name)
         self._command_registry = PluginCommandRegistry()
         self._plugin_context: PluginContext | None = None
+        self._nav_sidebar: NavigationSidebar | None = None
+        self._query_pad: QueryPad | None = None
         self._plugin_loader = self._create_plugin_loader()
         self._plugin_loader.load()
         self._register_plugin_commands()
@@ -111,13 +113,21 @@ class PsqluiApp(App[None]):
 
         yield Header(show_clock=True)
         nav_sidebar = NavigationSidebar(self._session_manager)
+        sidebar_width = self._config.layout.sidebar_width
+        if sidebar_width:
+            nav_sidebar.styles.width = sidebar_width
+            nav_sidebar.styles.min_width = sidebar_width
+            nav_sidebar.styles.max_width = sidebar_width
+        self._nav_sidebar = nav_sidebar
+        query_pad = QueryPad(
+            self._sql_service,
+            initial_metadata=self._session_manager.metadata_snapshot,
+            session_manager=self._session_manager,
+        )
+        self._query_pad = query_pad
         main_column = Container(
             Hero(),
-            QueryPad(
-                self._sql_service,
-                initial_metadata=self._session_manager.metadata_snapshot,
-                session_manager=self._session_manager,
-            ),
+            query_pad,
             id="main-column",
         )
         sidebar_children = self._pane_widgets or [Static("No plugin panes active", id="plugin-pane-empty")]
@@ -125,6 +135,13 @@ class PsqluiApp(App[None]):
         yield Horizontal(nav_sidebar, main_column, sidebar, id="content")
         yield StatusBar(self._session_manager)
         yield Footer()
+
+    async def on_mount(self) -> None:
+        target = self._config.layout.last_focus
+        if target == "sidebar" and self._nav_sidebar:
+            await self._nav_sidebar.focus()
+        elif target == "query_pad" and self._query_pad:
+            await self._query_pad.focus()
 
     def action_refresh(self) -> None:
         self._session_manager.refresh_active_profile()
@@ -178,6 +195,22 @@ class PsqluiApp(App[None]):
         self._config = self._config.with_active_profile(state.profile.name)
         save_config(self._config)
         self.notify(f"Switched to profile: {state.profile.name}", severity="information")
+
+    def remember_focus(self, target: str) -> None:
+        """Persist the last-focused widget identifier."""
+
+        if self._config.layout.last_focus == target:
+            return
+        self._config = self._config.with_layout(last_focus=target)
+        save_config(self._config)
+
+    def remember_sidebar_width(self, width: int) -> None:
+        """Persist the sidebar width when it changes."""
+
+        if self._config.layout.sidebar_width == width:
+            return
+        self._config = self._config.with_layout(sidebar_width=width)
+        save_config(self._config)
 
     def _create_plugin_loader(self) -> PluginLoader:
         ctx = PluginContext(

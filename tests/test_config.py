@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from psqlui import config as config_module
-from psqlui.config import AppConfig, ConnectionProfileConfig, load_config, save_config
+from psqlui.config import AppConfig, ConnectionProfileConfig, LayoutState, load_config, save_config
 
 
 def test_enabled_plugins_returns_none_when_unset() -> None:
@@ -56,6 +56,10 @@ host = "localhost"
 database = "postgres"
 user = "postgres"
 metadata_key = "demo"
+
+[layout]
+sidebar_width = 30
+last_focus = "sidebar"
 """
     )
     monkeypatch.setattr(config_module, "CONFIG_FILE", config_path)
@@ -67,6 +71,8 @@ metadata_key = "demo"
     assert result.plugins == {"hello-world": True, "other": False}
     assert result.active_profile == "Local Demo"
     assert result.profiles[0].name == "Local Demo"
+    assert result.layout.sidebar_width == 30
+    assert result.layout.last_focus == "sidebar"
 
 
 def test_load_config_handles_toml_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -107,6 +113,7 @@ def test_save_config_persists_values(tmp_path: Path, monkeypatch: pytest.MonkeyP
                 )
             ],
             active_profile="Local Demo",
+            layout=LayoutState(sidebar_width=32, last_focus="sidebar"),
         )
     )
 
@@ -114,6 +121,9 @@ def test_save_config_persists_values(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert 'theme = "light"' in content
     assert "telemetry_enabled = true" in content
     assert 'active_profile = "Local Demo"' in content
+    assert "[layout]" in content
+    assert "sidebar_width = 32" in content
+    assert 'last_focus = "sidebar"' in content
     assert "[[profiles]]" in content
     assert 'name = "Local Demo"' in content
     assert "[plugins]" in content
@@ -126,3 +136,12 @@ def test_with_active_profile_updates_field() -> None:
     updated = config.with_active_profile("Local Demo")
 
     assert updated.active_profile == "Local Demo"
+
+
+def test_with_layout_updates_state() -> None:
+    config = AppConfig()
+
+    updated = config.with_layout(sidebar_width=40, last_focus="sidebar")
+
+    assert updated.layout.sidebar_width == 40
+    assert updated.layout.last_focus == "sidebar"

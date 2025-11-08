@@ -13,6 +13,13 @@ from pydantic import BaseModel, Field
 CONFIG_FILE = Path.home() / ".config" / "psqlui" / "config.toml"
 
 
+class LayoutState(BaseModel):
+    """Persisted layout hints for the TUI."""
+
+    sidebar_width: int | None = None
+    last_focus: str | None = None
+
+
 class ConnectionProfileConfig(BaseModel):
     """Connection profile configuration stored in config.toml."""
 
@@ -34,6 +41,7 @@ class AppConfig(BaseModel):
     plugins: dict[str, bool] = Field(default_factory=dict)
     profiles: list[ConnectionProfileConfig] = Field(default_factory=lambda: list(_default_profiles()))
     active_profile: str | None = None
+    layout: LayoutState = Field(default_factory=LayoutState)
 
     def plugin_filters(self) -> tuple[set[str] | None, set[str]]:
         """Return allow/block lists for plugin enablement."""
@@ -76,6 +84,12 @@ class AppConfig(BaseModel):
 
         return self.model_copy(update={"active_profile": name})
 
+    def with_layout(self, **updates: object) -> AppConfig:
+        """Return a copy with layout state changes applied."""
+
+        layout = self.layout.model_copy(update=updates)
+        return self.model_copy(update={"layout": layout})
+
 
 def load_config() -> AppConfig:
     """Load configuration from disk; fall back to defaults if missing."""
@@ -104,6 +118,7 @@ def load_config() -> AppConfig:
         plugins=data.get("plugins", {}),
         profiles=profiles if profiles is not None else list(_default_profiles()),
         active_profile=data.get("active_profile"),
+        layout=data.get("layout", LayoutState()),
     )
 
 
@@ -117,6 +132,13 @@ def save_config(config: AppConfig) -> None:
     ]
     if config.active_profile:
         lines.append(f'active_profile = "{config.active_profile}"')
+    if config.layout.sidebar_width is not None or config.layout.last_focus:
+        lines.append("")
+        lines.append("[layout]")
+        if config.layout.sidebar_width is not None:
+            lines.append(f"sidebar_width = {config.layout.sidebar_width}")
+        if config.layout.last_focus:
+            lines.append(f'last_focus = "{config.layout.last_focus}"')
     if config.profiles:
         lines.append("")
         for profile in config.profiles:
@@ -189,6 +211,16 @@ def _read_config_file() -> dict[str, object]:
                     parsed_profiles.append(parsed)
             if parsed_profiles:
                 data["profiles"] = parsed_profiles
+        layout = raw.get("layout")
+        if isinstance(layout, dict):
+            state: dict[str, object] = {}
+            sidebar_width = layout.get("sidebar_width")
+            if isinstance(sidebar_width, int):
+                state["sidebar_width"] = sidebar_width
+            last_focus = layout.get("last_focus")
+            if isinstance(last_focus, str):
+                state["last_focus"] = last_focus
+            data["layout"] = LayoutState(**state)
     return data
 
 

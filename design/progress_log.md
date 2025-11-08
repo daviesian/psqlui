@@ -5,8 +5,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 ## Current Baseline
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
-- **Latest commit**: `cd0b63b` — Fix sidebar list rendering
-- **Uncommitted work**: Session refresh timestamp/status updates, metadata refresh provider/tests, and this progress log entry.
+- **Latest commit**: `708b493` — Mute refresh action bell
+- **Uncommitted work**: Layout persistence additions (config schema, focus remembered, sidebar width capture), the sidebar resize handler fix, corresponding widget/app/test updates, and this progress log entry.
 
 ## Completed So Far
 1. Created `design/` hub with product overview, architecture, UI flows, roadmap, and ops/quality strategy.
@@ -31,17 +31,19 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 20. Made the navigation sidebar focusable for inline profile switching, introduced a `DemoConnectionBackend` that emits metadata snapshots, hooked Ctrl+R to refresh the active session, and expanded coverage (`tests/test_connections.py`, refreshed session tests).
 21. Fixed the sidebar profile list so entries render reliably by pre-building `ListView` items during compose, avoiding the async mount issues that left the pane blank.
 22. Added session refresh timestamps (shown in the status bar), wired the session manager to generate timezone-aware updates, and exposed a command-palette `Refresh active profile metadata` action alongside coverage.
+23. Extended config with a `LayoutState`, made the sidebar/query pad remember focus + width between runs, applied the stored width during compose, and covered the persistence helpers with config + app tests.
+24. Fixed the sidebar resize handler to avoid calling a non-existent parent method (which previously caused the app to exit immediately when Textual emitted a resize event).
 
 ## Outstanding Tasks
 - Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.
-- Finish Milestone 4 wiring: persist layout/state, round out the inline profile picker UX (indicators, mouse clicks), and replace demo metadata with a real connection/session cache once that service lands.
+- Finish Milestone 4 wiring: round out the inline profile picker UX (mouse resizing indicators, context menu) and replace demo metadata with a real connection/session cache once that service lands.
 - Connect SQL intel + plugins to the new connection backend events (propagate refresh/errors) as we swap in a real driver.
 - Track dev workflow docs + onboarding guides alongside code changes.
 
 ## How to Resume
 1. `cd /home/ipd21/psqlui`
-2. `git status` (expect session/widget/provider/test updates and this log).
-3. Continue editing or start a commit capturing the refresh provider/status work once ready.
+2. `git status` (expect config/app/widget/test updates and this log).
+3. Continue editing or start a commit capturing the layout persistence work once ready.
 
 Keep this file updated whenever major decisions land so future contexts know the state of play.
 ## Update Ritual

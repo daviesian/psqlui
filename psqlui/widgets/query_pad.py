@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Callable, Mapping, Sequence
 
+from textual import events
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.widgets import Input, Static
@@ -90,6 +91,10 @@ class QueryPad(Container):
             self._unsubscribe()
             self._unsubscribe = None
 
+    async def on_focus(self, event: events.Focus) -> None:
+        await super().on_focus(event)
+        self._report_focus()
+
     async def on_input_changed(self, event: Input.Changed) -> None:
         buffer = event.value
         cursor = len(buffer)
@@ -134,6 +139,12 @@ class QueryPad(Container):
     def _handle_session_update(self, state: SessionState) -> None:
         self._metadata_snapshot = state.metadata
         self._render_metadata_status()
+
+    def _report_focus(self) -> None:
+        remember = getattr(self.app, "remember_focus", None)
+        if remember is None:
+            return
+        remember("query_pad")
 
 
 __all__ = ["QueryPad"]
