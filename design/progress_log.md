@@ -5,8 +5,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 ## Current Baseline
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
-- **Latest commit**: `084b887` — Add plugin toggles and dev doc
-- **Uncommitted work**: Plugin docs relocation (`docs/plugins.md`), README + AGENTS tweaks, and this progress log update.
+- **Latest commit**: `30b7c7c` — Move plugin docs under docs/
+- **Uncommitted work**: Milestone 4 scaffolding (session manager, sidebar/layout overhaul, status bar, QueryPad refresh), config/test updates, and this progress log entry.
 
 ## Completed So Far
 1. Created `design/` hub with product overview, architecture, UI flows, roadmap, and ops/quality strategy.
@@ -26,17 +26,18 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 15. Implemented TOML-based config loading from `~/.config/psqlui/config.toml`, including plugin enablement parsing and regression tests for happy/missing/error cases.
 16. Added in-app plugin toggles via the command palette, config persistence helpers, and a developer doc outlining the contract.
 17. Moved the plugin development guide under `docs/plugins.md` (user-facing), updated README references, and clarified agent guidance around `design/` vs `docs/` usage.
+18. Kicked off Milestone 4 navigation/data work: extended config with connection profiles, introduced a session manager feeding metadata to SQL intel, rebuilt the Textual layout with persistent nav + status bars, refreshed the query pad wiring, and added coverage for the new infrastructure.
 
 ## Outstanding Tasks
 - Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.
-- Flesh out Textual spike (Milestone 4): persistent sidebar/query pad layout, command palette, status bar, basic session wiring.
-- Connect SQL intel to the future metadata cache once the connection/session manager lands.
+- Finish Milestone 4 wiring: allow switching between connection profiles, persist layout/state, and replace demo metadata with a session-backed cache once a real connection manager lands.
+- Connect SQL intel + plugins to the forthcoming metadata cache/session events for live updates.
 - Track dev workflow docs + onboarding guides alongside code changes.
 
 ## How to Resume
 1. `cd /home/ipd21/psqlui`
-2. `git status` (expect `design/sql_intelligence.md`, `design/plugin_contract.md`, `design/README.md`, `design/architecture.md`).
-3. Continue editing or run `git commit -am "Document SQL intel and plugin contract"` once satisfied.
+2. `git status` (expect `psqlui/app.py`, `psqlui/config.py`, `psqlui/session.py`, `psqlui/widgets/*`, `tests/**`, and this log).
+3. Continue editing or start a commit capturing the Milestone 4 scaffolding + docs/tests once ready.
 
 Keep this file updated whenever major decisions land so future contexts know the state of play.
 ## Update Ritual

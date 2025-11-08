@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Mapping, Sequence
+from typing import Callable, Mapping, Sequence
 
 from textual.app import ComposeResult
 from textual.containers import Container
-from textual.widgets import Button, Input, Static
+from textual.widgets import Input, Static
 
 from psqlui.sqlintel import AnalysisResult, SqlIntelService, Suggestion
 from psqlui.sqlintel.debounce import Debouncer
+from psqlui.session import SessionManager, SessionState
 
 
 class QueryPad(Container):
@@ -39,11 +40,6 @@ class QueryPad(Container):
         padding-top: 1;
     }
 
-    #metadata-controls {
-        layout: horizontal;
-        width: 100%;
-    }
-
     #metadata-status {
         color: $text-muted;
     }
@@ -54,7 +50,7 @@ class QueryPad(Container):
         sql_service: SqlIntelService,
         *,
         initial_metadata: Mapping[str, Sequence[str]] | None = None,
-        metadata_presets: Sequence[Mapping[str, Sequence[str]]] | None = None,
+        session_manager: SessionManager | None = None,
     ) -> None:
         super().__init__(id="query-pad")
         self._sql_service = sql_service
@@ -63,23 +59,14 @@ class QueryPad(Container):
         self._analysis_panel: Static | None = None
         self._metadata_panel: Static | None = None
         self._input: Input | None = None
-        self._metadata_presets: list[Mapping[str, Sequence[str]]] = list(metadata_presets or [])
-        self._metadata_index = 0
-        if not self._metadata_presets and initial_metadata:
-            self._metadata_presets.append(initial_metadata)
-        self._metadata_snapshot: Mapping[str, Sequence[str]] = (
-            initial_metadata
-            or (self._metadata_presets[0] if self._metadata_presets else {})
-        )
+        self._metadata_snapshot: Mapping[str, Sequence[str]] = dict(initial_metadata or {})
+        self._session_manager = session_manager
+        self._unsubscribe: Callable[[], None] | None = None
 
     def compose(self) -> ComposeResult:
         """Compose the input + suggestion panes."""
 
         yield Static("Query Pad", classes="panel-title")
-        yield Container(
-            Button("Cycle demo metadata", id="metadata-refresh"),
-            id="metadata-controls",
-        )
         yield Input(
             placeholder="Type SQL, e.g. SELECT * FROM accounts WHERE id = 1;",
             id="query-input",
@@ -94,9 +81,14 @@ class QueryPad(Container):
         self._analysis_panel = self.query_one("#query-analysis", Static)
         self._metadata_panel = self.query_one("#metadata-status", Static)
         self._render_metadata_status()
+        if self._session_manager:
+            self._unsubscribe = self._session_manager.subscribe(self._handle_session_update)
 
     def on_unmount(self) -> None:
         self._debouncer.cancel()
+        if self._unsubscribe:
+            self._unsubscribe()
+            self._unsubscribe = None
 
     async def on_input_changed(self, event: Input.Changed) -> None:
         buffer = event.value
@@ -139,18 +131,9 @@ class QueryPad(Container):
         tables = ", ".join(sorted(self._metadata_snapshot)) or "No tables loaded"
         self._metadata_panel.update(f"Metadata tables: {tables}")
 
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id != "metadata-refresh":
-            return
-        if not self._metadata_presets:
-            return
-        self._metadata_index = (self._metadata_index + 1) % len(self._metadata_presets)
-        snapshot = self._metadata_presets[self._metadata_index]
-        self._metadata_snapshot = snapshot
-        self._sql_service.update_metadata(snapshot)
+    def _handle_session_update(self, state: SessionState) -> None:
+        self._metadata_snapshot = state.metadata
         self._render_metadata_status()
-        buffer = self._input.value if self._input else ""
-        await self._refresh_analysis(buffer, len(buffer))
 
 
 __all__ = ["QueryPad"]

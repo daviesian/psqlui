@@ -18,8 +18,9 @@ from .plugins import (
     PluginLoader,
     PluginToggleProvider,
 )
-from .sqlintel import SqlIntelService, StaticMetadataProvider
-from .widgets import QueryPad
+from .session import DEFAULT_METADATA_PRESETS, SessionManager
+from .sqlintel import SqlIntelService
+from .widgets import NavigationSidebar, QueryPad, StatusBar
 
 try:
     from examples.plugins.hello_world import HelloWorldPlugin
@@ -57,6 +58,18 @@ class PsqluiApp(App[None]):
     }
     #content {
         layout: horizontal;
+        height: 1fr;
+    }
+    #main-column {
+        layout: vertical;
+        padding: 1 2;
+        height: 1fr;
+        border-left: solid $surface-darken-1;
+        border-right: solid $surface-darken-1;
+    }
+    NavigationSidebar {
+        width: 28;
+        min-width: 22;
     }
     #plugin-sidebar {
         width: 32;
@@ -76,13 +89,20 @@ class PsqluiApp(App[None]):
     BINDINGS = [
         ("ctrl+c", "quit", "Quit"),
         ("ctrl+r", "refresh", "Refresh"),
+        ("ctrl+p", "command_palette", "Command Palette"),
     ]
 
     def __init__(self) -> None:
         super().__init__()
         self._config = _load_app_config()
-        sample_metadata = StaticMetadataProvider(DEMO_METADATA[0])
-        self._sql_service = SqlIntelService(metadata_provider=sample_metadata)
+        self._sql_service = SqlIntelService()
+        self._session_manager = SessionManager(
+            self._sql_service,
+            config=self._config,
+            metadata_presets=DEFAULT_METADATA_PRESETS,
+        )
+        if self._session_manager.state:
+            self._config = self._config.with_active_profile(self._session_manager.state.profile.name)
         self._command_registry = PluginCommandRegistry()
         self._plugin_context: PluginContext | None = None
         self._plugin_loader = self._create_plugin_loader()
@@ -94,17 +114,20 @@ class PsqluiApp(App[None]):
         """Compose the root layout."""
 
         yield Header(show_clock=True)
+        nav_sidebar = NavigationSidebar(self._session_manager)
         main_column = Container(
             Hero(),
             QueryPad(
                 self._sql_service,
-                initial_metadata=DEMO_METADATA[0],
-                metadata_presets=DEMO_METADATA,
+                initial_metadata=self._session_manager.metadata_snapshot,
+                session_manager=self._session_manager,
             ),
+            id="main-column",
         )
         sidebar_children = self._pane_widgets or [Static("No plugin panes active", id="plugin-pane-empty")]
         sidebar = Vertical(*sidebar_children, id="plugin-sidebar")
-        yield Horizontal(main_column, sidebar, id="content")
+        yield Horizontal(nav_sidebar, main_column, sidebar, id="content")
+        yield StatusBar(self._session_manager)
         yield Footer()
 
     @on("refresh")
@@ -122,6 +145,12 @@ class PsqluiApp(App[None]):
         """Return plugin command registry."""
 
         return self._command_registry
+
+    @property
+    def session_manager(self) -> SessionManager:
+        """Expose the session manager for tests."""
+
+        return self._session_manager
 
     @property
     def plugin_panes(self) -> tuple[Widget, ...]:
@@ -144,7 +173,12 @@ class PsqluiApp(App[None]):
         self.notify(f"{name} {state}. Restart to apply.", severity="information")
 
     def _create_plugin_loader(self) -> PluginLoader:
-        ctx = PluginContext(app=self, sql_intel=self._sql_service, config=self._config)
+        ctx = PluginContext(
+            app=self,
+            sql_intel=self._sql_service,
+            metadata_cache=self._session_manager,
+            config=self._config,
+        )
         self._plugin_context = ctx
         allowlist, disabled = self._config.plugin_filters()
         builtin_plugins = [HelloWorldPlugin] if HelloWorldPlugin is not None else None
@@ -188,14 +222,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-DEMO_METADATA = [
-    {
-        "public.accounts": ("id", "email", "last_login"),
-        "public.orders": ("id", "account_id", "total"),
-        "public.payments": ("id", "order_id", "amount"),
-    },
-    {
-        "analytics.sessions": ("id", "user_id", "started_at", "device"),
-        "analytics.events": ("id", "session_id", "name", "payload"),
-    },
-]

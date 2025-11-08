@@ -48,6 +48,20 @@ async def test_app_loads_enabled_plugins(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 @pytest.mark.anyio
+async def test_app_initializes_session_manager(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = AppConfig()
+    monkeypatch.setattr("psqlui.app._load_app_config", lambda: config)
+
+    app = PsqluiApp()
+
+    try:
+        assert app.session_manager.state is not None
+        assert app.session_manager.metadata_snapshot
+    finally:
+        await app.plugin_loader.shutdown()
+
+
+@pytest.mark.anyio
 async def test_app_respects_disabled_plugins(monkeypatch: pytest.MonkeyPatch) -> None:
     config = AppConfig(plugins={HelloWorldPlugin.name: False})
     monkeypatch.setattr("psqlui.app._load_app_config", lambda: config)

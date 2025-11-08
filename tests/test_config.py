@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from psqlui import config as config_module
-from psqlui.config import AppConfig, load_config, save_config
+from psqlui.config import AppConfig, ConnectionProfileConfig, load_config, save_config
 
 
 def test_enabled_plugins_returns_none_when_unset() -> None:
@@ -44,10 +44,18 @@ def test_load_config_reads_values(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
         """
 theme = "light"
 telemetry_enabled = true
+active_profile = "Local Demo"
 
 [plugins]
 hello-world = true
 other = false
+
+[[profiles]]
+name = "Local Demo"
+host = "localhost"
+database = "postgres"
+user = "postgres"
+metadata_key = "demo"
 """
     )
     monkeypatch.setattr(config_module, "CONFIG_FILE", config_path)
@@ -57,6 +65,8 @@ other = false
     assert result.theme == "light"
     assert result.telemetry_enabled is True
     assert result.plugins == {"hello-world": True, "other": False}
+    assert result.active_profile == "Local Demo"
+    assert result.profiles[0].name == "Local Demo"
 
 
 def test_load_config_handles_toml_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -82,10 +92,37 @@ def test_save_config_persists_values(tmp_path: Path, monkeypatch: pytest.MonkeyP
     config_path = tmp_path / "config.toml"
     monkeypatch.setattr(config_module, "CONFIG_FILE", config_path)
 
-    save_config(AppConfig(theme="light", telemetry_enabled=True, plugins={"hello-world": False}))
+    save_config(
+        AppConfig(
+            theme="light",
+            telemetry_enabled=True,
+            plugins={"hello-world": False},
+            profiles=[
+                ConnectionProfileConfig(
+                    name="Local Demo",
+                    host="localhost",
+                    database="postgres",
+                    user="postgres",
+                    metadata_key="demo",
+                )
+            ],
+            active_profile="Local Demo",
+        )
+    )
 
     content = config_path.read_text()
     assert 'theme = "light"' in content
     assert "telemetry_enabled = true" in content
+    assert 'active_profile = "Local Demo"' in content
+    assert "[[profiles]]" in content
+    assert 'name = "Local Demo"' in content
     assert "[plugins]" in content
     assert "hello-world = false" in content
+
+
+def test_with_active_profile_updates_field() -> None:
+    config = AppConfig()
+
+    updated = config.with_active_profile("Local Demo")
+
+    assert updated.active_profile == "Local Demo"
