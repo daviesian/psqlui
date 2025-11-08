@@ -16,6 +16,8 @@ from psqlui.session import SessionManager, SessionState
 class NavigationSidebar(Container):
     """Displays the active profile and schemas pulled from the session manager."""
 
+    can_focus = True
+
     DEFAULT_CSS = """
     NavigationSidebar {
         width: 28;
@@ -78,6 +80,12 @@ class NavigationSidebar(Container):
 
     async def on_focus(self, event: events.Focus) -> None:
         await super().on_focus(event)
+        self.focus_list()
+        self._report_focus()
+
+    async def on_mouse_down(self, event: events.MouseDown) -> None:
+        await super().on_mouse_down(event)
+        self.focus_list()
         self._report_focus()
 
     async def on_resize(self, event: events.Resize) -> None:
@@ -150,6 +158,10 @@ class NavigationSidebar(Container):
             return
         if width > 0:
             remember(width)
+
+    def focus_list(self) -> None:
+        if self._profile_list:
+            self._profile_list.focus()
 
 
 class _ProfileListItem(ListItem):

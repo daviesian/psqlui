@@ -90,8 +90,8 @@ class PsqluiApp(App[None]):
         ("ctrl+c", "quit", "Quit"),
         ("ctrl+r", "refresh", "Refresh Metadata"),
         ("ctrl+p", "command_palette", "Command Palette"),
-        ("ctrl+[", "focus_sidebar", "Focus Sidebar"),
-        ("ctrl+]", "focus_editor", "Focus Editor"),
+        ("ctrl+left", "focus_sidebar", "Focus Sidebar"),
+        ("ctrl+right", "focus_editor", "Focus Editor"),
     ]
 
     def __init__(self) -> None:
@@ -150,12 +150,12 @@ class PsqluiApp(App[None]):
 
     async def action_focus_sidebar(self) -> None:
         if self._nav_sidebar:
-            self._nav_sidebar.focus()
+            self._nav_sidebar.focus_list()
             self.remember_focus("sidebar")
 
     async def action_focus_editor(self) -> None:
         if self._query_pad:
-            self._query_pad.focus()
+            self._query_pad.focus_editor()
             self.remember_focus("query_pad")
 
     @property

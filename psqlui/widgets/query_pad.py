@@ -17,6 +17,8 @@ from psqlui.session import SessionManager, SessionState
 class QueryPad(Container):
     """Minimal editor surface used to validate the SqlIntelService round-trip."""
 
+    can_focus = True
+
     DEFAULT_CSS = """
     QueryPad {
         layout: vertical;
@@ -98,6 +100,12 @@ class QueryPad(Container):
 
     async def on_focus(self, event: events.Focus) -> None:
         await super().on_focus(event)
+        self.focus_editor()
+        self._report_focus()
+
+    async def on_mouse_down(self, event: events.MouseDown) -> None:
+        await super().on_mouse_down(event)
+        self.focus_editor()
         self._report_focus()
 
     async def on_input_changed(self, event: Input.Changed) -> None:
@@ -150,6 +158,10 @@ class QueryPad(Container):
         if remember is None:
             return
         remember("query_pad")
+
+    def focus_editor(self) -> None:
+        if self._input:
+            self._input.focus()
 
 
 __all__ = ["QueryPad"]
