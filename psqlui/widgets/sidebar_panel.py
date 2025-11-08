@@ -28,10 +28,10 @@ class SidebarPanel(Container):
 
     SidebarResizeHandle {
         width: 2;
-        height: 1fr;
+        min-width: 2;
+        height: 100%;
+        min-height: 100%;
         background: $surface-darken-2;
-        color: $text-muted;
-        text-align: center;
     }
     """
 
@@ -96,7 +96,7 @@ class SidebarResizeHandle(Static):
     """
 
     def __init__(self, panel: SidebarPanel) -> None:
-        super().__init__("│", id="sidebar-resize-handle")
+        super().__init__("", id="sidebar-resize-handle")
         self._panel = panel
 
     def on_mouse_down(self, event: events.MouseDown) -> None:
