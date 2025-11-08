@@ -59,7 +59,6 @@ metadata_key = "demo"
 
 [layout]
 sidebar_width = 30
-last_focus = "sidebar"
 """
     )
     monkeypatch.setattr(config_module, "CONFIG_FILE", config_path)
@@ -72,7 +71,6 @@ last_focus = "sidebar"
     assert result.active_profile == "Local Demo"
     assert result.profiles[0].name == "Local Demo"
     assert result.layout.sidebar_width == 30
-    assert result.layout.last_focus == "sidebar"
 
 
 def test_load_config_handles_toml_errors(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -113,7 +111,7 @@ def test_save_config_persists_values(tmp_path: Path, monkeypatch: pytest.MonkeyP
                 )
             ],
             active_profile="Local Demo",
-            layout=LayoutState(sidebar_width=32, last_focus="sidebar"),
+            layout=LayoutState(sidebar_width=32),
         )
     )
 
@@ -123,7 +121,6 @@ def test_save_config_persists_values(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert 'active_profile = "Local Demo"' in content
     assert "[layout]" in content
     assert "sidebar_width = 32" in content
-    assert 'last_focus = "sidebar"' in content
     assert "[[profiles]]" in content
     assert 'name = "Local Demo"' in content
     assert "[plugins]" in content
@@ -141,7 +138,6 @@ def test_with_active_profile_updates_field() -> None:
 def test_with_layout_updates_state() -> None:
     config = AppConfig()
 
-    updated = config.with_layout(sidebar_width=40, last_focus="sidebar")
+    updated = config.with_layout(sidebar_width=40)
 
     assert updated.layout.sidebar_width == 40
-    assert updated.layout.last_focus == "sidebar"

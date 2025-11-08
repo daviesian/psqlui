@@ -136,18 +136,6 @@ class PsqluiApp(App[None]):
         yield StatusBar(self._session_manager)
         yield Footer()
 
-    async def on_mount(self) -> None:
-        target = self._config.layout.last_focus
-
-        def _restore_focus() -> None:
-            if target == "sidebar" and self._nav_sidebar:
-                self._nav_sidebar.focus_list()
-            elif target == "query_pad" and self._query_pad:
-                self._query_pad.focus_editor()
-
-        if target:
-            self.call_later(_restore_focus)
-
     def action_refresh(self) -> None:
         self._session_manager.refresh_active_profile()
 
@@ -200,14 +188,6 @@ class PsqluiApp(App[None]):
         self._config = self._config.with_active_profile(state.profile.name)
         save_config(self._config)
         self.notify(f"Switched to profile: {state.profile.name}", severity="information")
-
-    def remember_focus(self, target: str) -> None:
-        """Persist the last-focused widget identifier."""
-
-        if self._config.layout.last_focus == target:
-            return
-        self._config = self._config.with_layout(last_focus=target)
-        save_config(self._config)
 
     def remember_sidebar_width(self, width: int) -> None:
         """Persist the sidebar width when it changes."""

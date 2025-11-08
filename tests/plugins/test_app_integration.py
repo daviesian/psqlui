@@ -139,7 +139,7 @@ async def test_refresh_action_invokes_session_manager(monkeypatch: pytest.Monkey
 
 
 @pytest.mark.anyio
-async def test_app_persists_focus_and_width(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_app_persists_sidebar_width(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config_path = tmp_path / "config.toml"
     monkeypatch.setattr("psqlui.config.CONFIG_FILE", config_path)
     monkeypatch.setattr("psqlui.app._load_app_config", lambda: AppConfig())
@@ -147,13 +147,11 @@ async def test_app_persists_focus_and_width(tmp_path: Path, monkeypatch: pytest.
     app = PsqluiApp()
 
     try:
-        app.remember_focus("sidebar")
         app.remember_sidebar_width(44)
     finally:
         await app.plugin_loader.shutdown()
 
     content = config_path.read_text()
-    assert 'last_focus = "sidebar"' in content
     assert "sidebar_width = 44" in content
 
 

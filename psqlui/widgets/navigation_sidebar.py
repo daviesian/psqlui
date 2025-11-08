@@ -16,8 +16,6 @@ from psqlui.session import SessionManager, SessionState
 class NavigationSidebar(Container):
     """Displays the active profile and schemas pulled from the session manager."""
 
-    can_focus = True
-
     DEFAULT_CSS = """
     NavigationSidebar {
         width: 28;
@@ -47,9 +45,6 @@ class NavigationSidebar(Container):
         text-style: bold;
     }
 
-    NavigationSidebar:focus-within {
-        border-right: solid $primary;
-    }
     """
 
     def __init__(self, session_manager: SessionManager) -> None:
@@ -77,14 +72,6 @@ class NavigationSidebar(Container):
         if self._unsubscribe:
             self._unsubscribe()
             self._unsubscribe = None
-
-    def on_focus(self, event: events.Focus) -> None:
-        self.focus_list()
-        self._report_focus()
-
-    def on_mouse_down(self, event: events.MouseDown) -> None:
-        self.focus_list()
-        self._report_focus()
 
     async def on_resize(self, event: events.Resize) -> None:
         self._report_width(event.size.width)
@@ -136,7 +123,6 @@ class NavigationSidebar(Container):
         item = event.item
         if isinstance(item, _ProfileListItem):
             self._request_switch(item.profile_name)
-            self._report_focus()
 
     def _request_switch(self, name: str) -> None:
         switcher = getattr(self.app, "switch_profile", None)
@@ -144,22 +130,12 @@ class NavigationSidebar(Container):
             return
         switcher(name)
 
-    def _report_focus(self) -> None:
-        remember = getattr(self.app, "remember_focus", None)
-        if remember is None:
-            return
-        remember("sidebar")
-
     def _report_width(self, width: int) -> None:
         remember = getattr(self.app, "remember_sidebar_width", None)
         if remember is None:
             return
         if width > 0:
             remember(width)
-
-    def focus_list(self) -> None:
-        if self._profile_list:
-            self._profile_list.focus()
 
 
 class _ProfileListItem(ListItem):

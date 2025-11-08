@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Callable, Mapping, Sequence
+from typing import Mapping, Sequence
 
-from textual import events, on
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.widgets import Input, Static
@@ -16,8 +15,6 @@ from psqlui.session import SessionManager, SessionState
 
 class QueryPad(Container):
     """Minimal editor surface used to validate the SqlIntelService round-trip."""
-
-    can_focus = True
 
     DEFAULT_CSS = """
     QueryPad {
@@ -75,8 +72,7 @@ class QueryPad(Container):
         """Compose the input + suggestion panes."""
 
         yield Static("Query Pad", classes="panel-title")
-        yield _RememberingInput(
-            self._report_focus,
+        yield Input(
             placeholder="Type SQL, e.g. SELECT * FROM accounts WHERE id = 1;",
             id="query-input",
         )
@@ -98,14 +94,6 @@ class QueryPad(Container):
         if self._unsubscribe:
             self._unsubscribe()
             self._unsubscribe = None
-
-    def on_focus(self, event: events.Focus) -> None:
-        self.focus_editor()
-        self._report_focus()
-
-    def on_mouse_down(self, event: events.MouseDown) -> None:
-        self.focus_editor()
-        self._report_focus()
 
     async def on_input_changed(self, event: Input.Changed) -> None:
         buffer = event.value
@@ -151,28 +139,5 @@ class QueryPad(Container):
     def _handle_session_update(self, state: SessionState) -> None:
         self._metadata_snapshot = state.metadata
         self._render_metadata_status()
-
-    def _report_focus(self) -> None:
-        remember = getattr(self.app, "remember_focus", None)
-        if remember is None:
-            return
-        remember("query_pad")
-
-    def focus_editor(self) -> None:
-        if self._input:
-            self._input.focus()
-
-
-class _RememberingInput(Input):
-    """Input that notifies a callback when it gains focus."""
-
-    def __init__(self, on_focus_callback: Callable[[], None], **kwargs: object) -> None:
-        super().__init__(**kwargs)
-        self._on_focus_callback = on_focus_callback
-
-    def on_focus(self, event: events.Focus) -> None:
-        super().on_focus(event)
-        self._on_focus_callback()
-
 
 __all__ = ["QueryPad"]

@@ -5,8 +5,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 ## Current Baseline
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
-- **Latest commit**: `708b493` — Mute refresh action bell
-- **Uncommitted work**: Layout persistence additions (config schema, focus remembered, sidebar width capture), the sidebar resize handler fix, corresponding widget/app/test updates, and this progress log entry.
+- **Latest commit**: `40e91a4` — Ensure query pad focus persists
+- **Uncommitted work**: Removal of focus-remembrance behavior (config/schema/widgets/docs updates), sidebar width persistence intact, and this progress log entry.
 
 ## Completed So Far
 1. Created `design/` hub with product overview, architecture, UI flows, roadmap, and ops/quality strategy.
@@ -28,12 +28,12 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 17. Moved the plugin development guide under `docs/plugins.md` (user-facing), updated README references, and clarified agent guidance around `design/` vs `docs/` usage.
 18. Kicked off Milestone 4 navigation/data work: extended config with connection profiles, introduced a session manager feeding metadata to SQL intel, rebuilt the Textual layout with persistent nav + status bars, refreshed the query pad wiring, and added coverage for the new infrastructure.
 19. Added a profile switch command provider that updates the session manager + config, letting users swap demo profiles from the command palette (with regression tests).
-20. Made the navigation sidebar focusable for inline profile switching, introduced a `DemoConnectionBackend` that emits metadata snapshots, hooked Ctrl+R to refresh the active session, and expanded coverage (`tests/test_connections.py`, refreshed session tests).
+20. Introduced a `DemoConnectionBackend` that emits metadata snapshots, hooked Ctrl+R to refresh the active session, and expanded coverage (`tests/test_connections.py`, refreshed session tests).
 21. Fixed the sidebar profile list so entries render reliably by pre-building `ListView` items during compose, avoiding the async mount issues that left the pane blank.
 22. Added session refresh timestamps (shown in the status bar), wired the session manager to generate timezone-aware updates, and exposed a command-palette `Refresh active profile metadata` action alongside coverage.
-23. Extended config with a `LayoutState`, made the sidebar/query pad remember focus + width between runs, applied the stored width during compose, and covered the persistence helpers with config + app tests.
+23. Extended config with a `LayoutState` so sidebar width persists between runs, applied the stored width during compose, and covered the persistence helpers with config + app tests.
 24. Fixed the sidebar resize handler to avoid calling a non-existent parent method (which previously caused the app to exit immediately when Textual emitted a resize event).
-25. Added focus-state persistence and styling so whichever pane you click/tab into is highlighted and remembered between runs (no extra shortcuts required).
+25. (Removed — focus-state persistence was cut; default Textual focus behavior remains.)
 
 ## Outstanding Tasks
 - Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.

@@ -17,7 +17,6 @@ class LayoutState(BaseModel):
     """Persisted layout hints for the TUI."""
 
     sidebar_width: int | None = None
-    last_focus: str | None = None
 
 
 class ConnectionProfileConfig(BaseModel):
@@ -132,13 +131,11 @@ def save_config(config: AppConfig) -> None:
     ]
     if config.active_profile:
         lines.append(f'active_profile = "{config.active_profile}"')
-    if config.layout.sidebar_width is not None or config.layout.last_focus:
+    if config.layout.sidebar_width is not None:
         lines.append("")
         lines.append("[layout]")
         if config.layout.sidebar_width is not None:
             lines.append(f"sidebar_width = {config.layout.sidebar_width}")
-        if config.layout.last_focus:
-            lines.append(f'last_focus = "{config.layout.last_focus}"')
     if config.profiles:
         lines.append("")
         for profile in config.profiles:
@@ -217,9 +214,6 @@ def _read_config_file() -> dict[str, object]:
             sidebar_width = layout.get("sidebar_width")
             if isinstance(sidebar_width, int):
                 state["sidebar_width"] = sidebar_width
-            last_focus = layout.get("last_focus")
-            if isinstance(last_focus, str):
-                state["last_focus"] = last_focus
             data["layout"] = LayoutState(**state)
     return data
 
