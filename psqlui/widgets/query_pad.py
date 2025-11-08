@@ -98,13 +98,11 @@ class QueryPad(Container):
             self._unsubscribe()
             self._unsubscribe = None
 
-    async def on_focus(self, event: events.Focus) -> None:
-        await super().on_focus(event)
+    def on_focus(self, event: events.Focus) -> None:
         self.focus_editor()
         self._report_focus()
 
-    async def on_mouse_down(self, event: events.MouseDown) -> None:
-        await super().on_mouse_down(event)
+    def on_mouse_down(self, event: events.MouseDown) -> None:
         self.focus_editor()
         self._report_focus()
 
