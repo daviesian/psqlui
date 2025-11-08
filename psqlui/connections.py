@@ -1,14 +1,29 @@
-"""Demo connection backend that simulates metadata refresh events."""
+"""Simulated connection backend that emits metadata + health events."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from datetime import datetime, timezone
+import random
 from typing import Callable, Mapping, Sequence, TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover - typing helper
     from .session import ConnectionProfile
 
 MetadataSnapshot = Mapping[str, tuple[str, ...]]
-MetadataListener = Callable[["ConnectionProfile", MetadataSnapshot], None]
+
+
+@dataclass(frozen=True, slots=True)
+class ConnectionEvent:
+    """Snapshot emitted whenever metadata refreshes."""
+
+    metadata: MetadataSnapshot
+    status: str
+    latency_ms: int
+    connected_at: datetime
+
+
+MetadataListener = Callable[["ConnectionProfile", ConnectionEvent], None]
 
 
 DEMO_METADATA_PRESETS: Mapping[str, Sequence[Mapping[str, Sequence[str]]]] = {
@@ -52,22 +67,27 @@ class DemoConnectionBackend:
         self._cursors: dict[str, int] = {key: 0 for key in self._presets}
         self._listeners: set[MetadataListener] = set()
 
-    def connect(self, profile: "ConnectionProfile") -> MetadataSnapshot:
+    def connect(self, profile: "ConnectionProfile") -> ConnectionEvent:
         """Simulate connecting to a profile and emit its metadata."""
 
         metadata = self._metadata_for(profile, advance=False)
-        return metadata
+        event = self._build_event(profile, metadata, status="Connected")
+        self._emit(profile, event)
+        return event
 
     def refresh(self, profile: "ConnectionProfile") -> None:
         """Emit the next metadata snapshot for the given profile."""
 
         metadata = self._metadata_for(profile, advance=True)
-        self._emit(profile, metadata)
+        status = random.choice(["Healthy", "Syncing", "Degraded"])
+        event = self._build_event(profile, metadata, status=status)
+        self._emit(profile, event)
 
     def emit_metadata(self, profile: "ConnectionProfile", metadata: Mapping[str, Sequence[str]]) -> None:
         """Push a custom metadata snapshot to listeners (testing helper)."""
 
-        self._emit(profile, self._normalize(metadata))
+        event = self._build_event(profile, self._normalize(metadata), status="Updated")
+        self._emit(profile, event)
 
     def subscribe(self, listener: MetadataListener) -> Callable[[], None]:
         """Subscribe to metadata events."""
@@ -94,9 +114,24 @@ class DemoConnectionBackend:
         idx = self._cursors.get(key, 0)
         return snapshots[idx]
 
-    def _emit(self, profile: "ConnectionProfile", metadata: MetadataSnapshot) -> None:
+    def _emit(self, profile: "ConnectionProfile", event: ConnectionEvent) -> None:
         for listener in tuple(self._listeners):
-            listener(profile, metadata)
+            listener(profile, event)
+
+    def _build_event(
+        self,
+        profile: "ConnectionProfile",
+        metadata: MetadataSnapshot,
+        *,
+        status: str,
+    ) -> ConnectionEvent:
+        latency = self._latency_for(profile)
+        return ConnectionEvent(
+            metadata=metadata,
+            status=status,
+            latency_ms=latency,
+            connected_at=datetime.now(tz=timezone.utc),
+        )
 
     @staticmethod
     def _normalize(snapshot: Mapping[str, Sequence[str]]) -> MetadataSnapshot:
@@ -105,5 +140,11 @@ class DemoConnectionBackend:
             for table, columns in snapshot.items()
         }
 
+    def _latency_for(self, profile: "ConnectionProfile") -> int:
+        key = profile.metadata_key or profile.name
+        base = 25 if key == "demo" else 55
+        jitter = random.randint(0, 15)
+        return base + jitter
 
-__all__ = ["DemoConnectionBackend", "DEMO_METADATA_PRESETS", "MetadataSnapshot"]
+
+__all__ = ["ConnectionEvent", "DemoConnectionBackend", "DEMO_METADATA_PRESETS", "MetadataSnapshot"]

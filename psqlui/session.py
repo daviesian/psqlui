@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Callable, Mapping
 
 from .config import AppConfig, ConnectionProfileConfig
-from .connections import DemoConnectionBackend, MetadataSnapshot
+from .connections import ConnectionEvent, DemoConnectionBackend, MetadataSnapshot
 from .sqlintel import SqlIntelService
 
 SessionListener = Callable[["SessionState"], None]
@@ -35,6 +35,8 @@ class SessionState:
     connected: bool
     metadata: Mapping[str, tuple[str, ...]]
     refreshed_at: datetime
+    status: str = "Connected"
+    latency_ms: int | None = None
 
 
 class SessionManager:
@@ -90,8 +92,14 @@ class SessionManager:
         """Activate the requested profile."""
 
         profile = self._profile_by_name(name)
-        metadata = self._backend.connect(profile)
-        self._update_state(profile, metadata, refreshed_at=datetime.now(tz=timezone.utc))
+        event = self._backend.connect(profile)
+        self._update_state(
+            profile,
+            event.metadata,
+            refreshed_at=event.connected_at,
+            status=event.status,
+            latency_ms=event.latency_ms,
+        )
         return self._state
 
     def refresh_active_profile(self) -> None:
@@ -145,6 +153,8 @@ class SessionManager:
         metadata: MetadataSnapshot,
         *,
         refreshed_at: datetime | None = None,
+        status: str = "Connected",
+        latency_ms: int | None = None,
     ) -> None:
         self._sql_intel.update_metadata(metadata)
         self._state = SessionState(
@@ -152,15 +162,23 @@ class SessionManager:
             connected=True,
             metadata=metadata,
             refreshed_at=refreshed_at or datetime.now(tz=timezone.utc),
+            status=status,
+            latency_ms=latency_ms,
         )
         self._notify()
 
-    def _handle_backend_event(self, profile: ConnectionProfile, metadata: MetadataSnapshot) -> None:
+    def _handle_backend_event(self, profile: ConnectionProfile, event: ConnectionEvent) -> None:
         if not self._state:
             return
         if profile.name != self._state.profile.name:
             return
-        self._update_state(profile, metadata, refreshed_at=datetime.now(tz=timezone.utc))
+        self._update_state(
+            profile,
+            event.metadata,
+            refreshed_at=event.connected_at,
+            status=event.status,
+            latency_ms=event.latency_ms,
+        )
 
     def _notify(self) -> None:
         if not self._state:

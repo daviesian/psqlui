@@ -20,7 +20,7 @@ from .plugins import (
 from .providers import ProfileSwitchProvider, SessionRefreshProvider
 from .session import SessionManager
 from .sqlintel import SqlIntelService
-from .widgets import NavigationSidebar, QueryPad, StatusBar
+from .widgets import NavigationSidebar, QueryPad, SidebarPanel, StatusBar
 
 try:
     from examples.plugins.hello_world import HelloWorldPlugin
@@ -112,13 +112,12 @@ class PsqluiApp(App[None]):
         """Compose the root layout."""
 
         yield Header(show_clock=True)
-        nav_sidebar = NavigationSidebar(self._session_manager)
-        sidebar_width = self._config.layout.sidebar_width
-        if sidebar_width:
-            nav_sidebar.styles.width = sidebar_width
-            nav_sidebar.styles.min_width = sidebar_width
-            nav_sidebar.styles.max_width = sidebar_width
-        self._nav_sidebar = nav_sidebar
+        sidebar_panel = SidebarPanel(
+            self._session_manager,
+            initial_width=self._config.layout.sidebar_width,
+            on_width_change=self.remember_sidebar_width,
+        )
+        self._nav_sidebar = sidebar_panel.sidebar
         query_pad = QueryPad(
             self._sql_service,
             initial_metadata=self._session_manager.metadata_snapshot,
@@ -132,7 +131,7 @@ class PsqluiApp(App[None]):
         )
         sidebar_children = self._pane_widgets or [Static("No plugin panes active", id="plugin-pane-empty")]
         sidebar = Vertical(*sidebar_children, id="plugin-sidebar")
-        yield Horizontal(nav_sidebar, main_column, sidebar, id="content")
+        yield Horizontal(sidebar_panel, main_column, sidebar, id="content")
         yield StatusBar(self._session_manager)
         yield Footer()
 

@@ -45,6 +45,13 @@ class NavigationSidebar(Container):
         text-style: bold;
     }
 
+    #profile-summary {
+        padding-top: 1;
+        border-top: solid $surface-darken-1;
+        color: $text-muted;
+        min-height: 4;
+    }
+
     """
 
     def __init__(self, session_manager: SessionManager) -> None:
@@ -53,6 +60,7 @@ class NavigationSidebar(Container):
         self._profile_list: ListView | None = None
         self._profile_items: dict[str, _ProfileListItem] = {}
         self._schemas: Static | None = None
+        self._profile_summary: Static | None = None
         self._unsubscribe: Callable[[], None] | None = None
 
     def compose(self) -> ComposeResult:
@@ -61,6 +69,8 @@ class NavigationSidebar(Container):
         self._profile_items = {item.profile_name: item for item in items}
         self._profile_list = ListView(*items, id="profile-list")
         yield self._profile_list
+        self._profile_summary = Static("", id="profile-summary", classes="sidebar-section")
+        yield self._profile_summary
         yield Static("Schemas", classes="sidebar-heading")
         self._schemas = Static("No schemas loaded.", id="schema-list", classes="sidebar-section")
         yield self._schemas
@@ -79,6 +89,7 @@ class NavigationSidebar(Container):
     def _handle_session_update(self, state: SessionState) -> None:
         self._render_connections(state)
         self._render_schemas(state)
+        self._render_profile_summary(state)
 
     def _render_connections(self, state: SessionState) -> None:
         if not self._profile_list:
@@ -129,6 +140,25 @@ class NavigationSidebar(Container):
         if switcher is None:
             return
         switcher(name)
+
+    def _render_profile_summary(self, state: SessionState) -> None:
+        if not self._profile_summary:
+            return
+        host = state.profile.host or "localhost"
+        database = state.profile.database or state.profile.name
+        latency = f"{state.latency_ms} ms" if state.latency_ms is not None else "—"
+        schema_count = len(state.metadata)
+        table_count = sum(len(columns) for columns in state.metadata.values())
+        summary = "\n".join(
+            [
+                f"Profile: {state.profile.name}",
+                f"Host: {host}",
+                f"Database: {database}",
+                f"Schemas: {schema_count} · Tables: {table_count}",
+                f"Status: {state.status} ({latency})",
+            ]
+        )
+        self._profile_summary.update(summary)
 
     def _report_width(self, width: int) -> None:
         remember = getattr(self.app, "remember_sidebar_width", None)

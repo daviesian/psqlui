@@ -27,6 +27,8 @@ def test_session_manager_connects_first_profile_by_default() -> None:
     assert manager.state.connected is True
     assert manager.state.metadata
     assert manager.state.refreshed_at is not None
+    assert manager.state.status
+    assert manager.state.latency_ms is not None
     assert service.last_metadata == dict(manager.state.metadata)
 
 
@@ -53,6 +55,7 @@ def test_session_manager_switches_profiles_and_notifies_listeners() -> None:
     assert manager.state is not None and manager.state.profile.name == "Replica"
     assert service.last_metadata == dict(manager.state.metadata)
     assert timestamps[-1] >= timestamps[0]
+    assert manager.state.latency_ms is not None
     unsubscribe()
 
 
@@ -89,3 +92,4 @@ def test_refresh_cycle_updates_metadata() -> None:
 
     assert lengths[-1] == 2
     assert manager.state.refreshed_at > initial_timestamp
+    assert manager.state.status

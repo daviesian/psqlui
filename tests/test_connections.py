@@ -18,10 +18,10 @@ def test_backend_cycles_metadata_snapshots() -> None:
     profile = ConnectionProfile(name="Local", metadata_key="demo")
     snapshots: list[tuple[str, ...]] = []
 
-    initial = backend.connect(profile)
-    assert initial["public.accounts"] == ("id",)
+    event = backend.connect(profile)
+    assert event.metadata["public.accounts"] == ("id",)
 
-    backend.subscribe(lambda _, metadata: snapshots.append(metadata["public.accounts"]))
+    backend.subscribe(lambda _, ev: snapshots.append(ev.metadata["public.accounts"]))
     backend.refresh(profile)
 
     assert snapshots[0] == ("id", "email")

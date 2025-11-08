@@ -37,10 +37,11 @@ class StatusBar(Static):
     def _handle_session_update(self, state: SessionState) -> None:
         tables = len(state.metadata)
         schemas = len({table.split(".")[0] if "." in table else "public" for table in state.metadata})
-        status = "Connected" if state.connected else "Idle"
+        status = state.status or ("Connected" if state.connected else "Idle")
+        latency = f"{state.latency_ms} ms" if state.latency_ms is not None else "—"
         refreshed = state.refreshed_at.astimezone().strftime("%H:%M:%S")
         self.update(
-            f"Profile: {state.profile.name} | Schemas: {schemas} | Tables: {tables} | Status: {status} | Refreshed: {refreshed}"
+            f"Profile: {state.profile.name} | Schemas: {schemas} | Tables: {tables} | Status: {status} ({latency}) | Refreshed: {refreshed}"
         )
 
 
