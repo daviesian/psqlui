@@ -33,7 +33,7 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 22. Added session refresh timestamps (shown in the status bar), wired the session manager to generate timezone-aware updates, and exposed a command-palette `Refresh active profile metadata` action alongside coverage.
 23. Extended config with a `LayoutState`, made the sidebar/query pad remember focus + width between runs, applied the stored width during compose, and covered the persistence helpers with config + app tests.
 24. Fixed the sidebar resize handler to avoid calling a non-existent parent method (which previously caused the app to exit immediately when Textual emitted a resize event).
-25. Added keyboard shortcuts (`Ctrl+Left`, `Ctrl+Right`) plus palette actions for focusing sidebar/editor panes, and styled both widgets so focus is visually obvious.
+25. Added focus-state persistence and styling so whichever pane you click/tab into is highlighted and remembered between runs (no extra shortcuts required).
 
 ## Outstanding Tasks
 - Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.
