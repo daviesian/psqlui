@@ -8,6 +8,7 @@ from textual.containers import Container
 from textual.widgets import Footer, Header, Static
 
 from .config import AppConfig, load_config
+from .plugins import PluginContext, PluginLoader
 from .sqlintel import SqlIntelService, StaticMetadataProvider
 from .widgets import QueryPad
 
@@ -51,6 +52,8 @@ class PsqluiApp(App[None]):
         self._config = _load_app_config()
         sample_metadata = StaticMetadataProvider(DEMO_METADATA[0])
         self._sql_service = SqlIntelService(metadata_provider=sample_metadata)
+        self._plugin_loader = self._create_plugin_loader()
+        self._plugin_loader.load()
 
     def compose(self) -> ComposeResult:
         """Compose the root layout."""
@@ -69,6 +72,21 @@ class PsqluiApp(App[None]):
     @on("refresh")
     def _handle_refresh(self) -> None:
         self.bell()
+
+    @property
+    def plugin_loader(self) -> PluginLoader:
+        """Expose the plugin loader for tests and future wiring."""
+
+        return self._plugin_loader
+
+    def _create_plugin_loader(self) -> PluginLoader:
+        ctx = PluginContext(app=self, sql_intel=self._sql_service, config=self._config)
+        enabled = self._config.enabled_plugins()
+        return PluginLoader(ctx, enabled_plugins=enabled)
+
+    async def _shutdown(self) -> None:
+        await self._plugin_loader.shutdown()
+        await super()._shutdown()
 
 
 def main() -> None:

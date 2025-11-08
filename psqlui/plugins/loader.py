@@ -70,7 +70,7 @@ class PluginLoader:
         self._ctx = ctx
         self._core_version = core_version
         self._entry_point_group = entry_point_group
-        self._enabled = set(enabled_plugins or [])
+        self._enabled: set[str] | None = set(enabled_plugins) if enabled_plugins is not None else None
         self._discovered: list[DiscoveredPlugin] = []
         self._loaded: dict[str, LoadedPlugin] = {}
 
@@ -102,7 +102,7 @@ class PluginLoader:
 
         loaded: list[LoadedPlugin] = []
         for plugin in self._discovered:
-            if self._enabled and plugin.name not in self._enabled:
+            if self._enabled is not None and plugin.name not in self._enabled:
                 LOG.debug("Skipping disabled plugin", extra={"plugin": plugin.name})
                 continue
             try:
