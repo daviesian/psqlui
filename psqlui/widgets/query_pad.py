@@ -44,6 +44,11 @@ class QueryPad(Container):
     #metadata-status {
         color: $text-muted;
     }
+
+    QueryPad:focus-within {
+        border: round $primary;
+        background: $surface-lighten-1;
+    }
     """
 
     def __init__(

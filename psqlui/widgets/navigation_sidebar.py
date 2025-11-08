@@ -44,6 +44,10 @@ class NavigationSidebar(Container):
     #profile-list .active {
         text-style: bold;
     }
+
+    NavigationSidebar:focus-within {
+        border-right: solid $primary;
+    }
     """
 
     def __init__(self, session_manager: SessionManager) -> None:

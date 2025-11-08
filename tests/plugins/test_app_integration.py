@@ -158,6 +158,20 @@ async def test_app_persists_focus_and_width(tmp_path: Path, monkeypatch: pytest.
 
 
 @pytest.mark.anyio
+async def test_focus_actions_move_between_panes(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = AppConfig()
+    monkeypatch.setattr("psqlui.app._load_app_config", lambda: config)
+
+    app = PsqluiApp()
+
+    try:
+        await app.action_focus_sidebar()
+        await app.action_focus_editor()
+    finally:
+        await app.plugin_loader.shutdown()
+
+
+@pytest.mark.anyio
 async def test_app_respects_disabled_plugins(monkeypatch: pytest.MonkeyPatch) -> None:
     config = AppConfig(plugins={HelloWorldPlugin.name: False})
     monkeypatch.setattr("psqlui.app._load_app_config", lambda: config)
