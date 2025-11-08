@@ -7,7 +7,7 @@ import importlib.metadata as metadata
 import pytest
 
 from examples.plugins.hello_world import HelloWorldPlugin
-from psqlui.plugins import CommandCapability, PluginContext, PluginLoader
+from psqlui.plugins import CommandCapability, PaneCapability, PluginContext, PluginLoader
 
 ENTRY_POINT = metadata.EntryPoint(
     name="hello-world",
@@ -49,7 +49,8 @@ def test_load_registers_capabilities_and_context() -> None:
 
     assert loaded
     plugin = loaded[0]
-    assert isinstance(plugin.capabilities[0], CommandCapability)
+    assert any(isinstance(cap, CommandCapability) for cap in plugin.capabilities)
+    assert any(isinstance(cap, PaneCapability) for cap in plugin.capabilities)
     descriptor = plugin.descriptor
     assert isinstance(descriptor, HelloWorldPlugin)
     assert descriptor.last_context == ctx

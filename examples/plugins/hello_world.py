@@ -7,6 +7,7 @@ from typing import Sequence
 from psqlui.plugins import (
     CapabilitySpec,
     CommandCapability,
+    PaneCapability,
     PluginContext,
     PluginDescriptor,
 )
@@ -37,8 +38,19 @@ class HelloWorldPlugin(PluginDescriptor):
                 name="hello.world",
                 description="Emit a friendly greeting toast.",
                 handler=_handler,
-            )
+            ),
+            PaneCapability(
+                name="Hello Pane",
+                description="Static info panel contributed by hello-world plugin.",
+                region="sidebar",
+                mount=self._mount_pane,
+            ),
         ]
 
     async def on_shutdown(self) -> None:
         self.shutdown_called = True
+
+    def _mount_pane(self, ctx: PluginContext):  # type: ignore[override]
+        from textual.widgets import Static
+
+        return Static("Hello from plugin pane", id="hello-pane")

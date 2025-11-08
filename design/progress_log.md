@@ -5,8 +5,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 ## Current Baseline
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
-- **Latest commit**: `f42e183` — Add plugin command registry
-- **Uncommitted work**: Built-in plugin discovery support + command palette provider wiring updates (`psqlui/plugins/loader.py`, `psqlui/plugins/providers.py`, `psqlui/app.py`), sample plugin/test tweaks, and this progress log update.
+- **Latest commit**: `7e04a02` — Surface hello world plugin via palette
+- **Uncommitted work**: Plugin pane contributions + sidebar host (`psqlui/app.py`, `psqlui/plugins/loader.py`, `psqlui/plugins/providers.py`), sample plugin updates/tests, README note, and this progress log update.
 
 ## Completed So Far
 1. Created `design/` hub with product overview, architecture, UI flows, roadmap, and ops/quality strategy.
@@ -22,9 +22,10 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 11. Added a plugin command registry, registered plugin command capabilities during app startup, and covered the new path with registry + integration tests.
 12. Integrated plugin commands into Textual's command palette via a custom provider, exported it from the plugin package, enhanced the sample plugin to track executions, and expanded tests to cover registry execution + provider hits.
 13. Added builtin plugin discovery inside `PluginLoader` so the repo-shipped `hello-world` sample surfaces without packaging entry points, wired it through the app factory, and covered the flow with loader + app-level tests.
+14. Mounted plugin pane capabilities in a sidebar container, updated the sample plugin to contribute a pane widget, and documented/validated the flow via README guidance plus pytest coverage.
 
 ## Outstanding Tasks
-- Continue Milestone 3 by surfacing capability consumers in the TUI (command palette wiring, pane mounting) and exposing plugin toggles via config/UI affordances.
+- Continue Milestone 3 by exposing enable/disable controls in-app, persisting plugin settings, and adding richer sample capabilities (exporters, metadata hooks).
 - Flesh out Textual spike (Milestone 4): persistent sidebar/query pad layout, command palette, status bar, basic session wiring.
 - Connect SQL intel to the future metadata cache once the connection/session manager lands.
 - Track dev workflow docs + onboarding guides alongside code changes.

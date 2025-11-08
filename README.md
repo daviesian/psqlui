@@ -14,3 +14,12 @@ uv run python -m psqlui
 - Lint: `uv run ruff check .`
 - Test: `uv run pytest`
 - Dev shell: `uv run python -m psqlui`
+
+## Sample Plugin
+- A bundled `hello-world` plugin loads automatically in dev builds. Press `Ctrl+P` in the app and run the `hello.world` command to exercise the plugin command path.
+- The plugin also contributes a sidebar pane. You can toggle plugin enablement via `~/.config/psqlui/config.toml`:
+
+  ```toml
+  [plugins]
+  hello-world = true
+  ```
