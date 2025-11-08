@@ -128,7 +128,6 @@ class PsqluiApp(App[None]):
 
     def action_refresh(self) -> None:
         self._session_manager.refresh_active_profile()
-        self.bell()
 
     @property
     def plugin_loader(self) -> PluginLoader:
