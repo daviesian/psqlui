@@ -9,8 +9,9 @@ import pytest
 
 from examples.plugins.hello_world import HelloWorldPlugin
 from psqlui.app import PsqluiApp
-from psqlui.config import AppConfig
+from psqlui.config import AppConfig, ConnectionProfileConfig
 from psqlui.plugins.providers import PluginCommandProvider, PluginToggleProvider
+from psqlui.providers import ProfileSwitchProvider
 
 ENTRY_POINT = metadata.EntryPoint(
     name="hello-world",
@@ -57,6 +58,33 @@ async def test_app_initializes_session_manager(monkeypatch: pytest.MonkeyPatch) 
     try:
         assert app.session_manager.state is not None
         assert app.session_manager.metadata_snapshot
+    finally:
+        await app.plugin_loader.shutdown()
+
+
+@pytest.mark.anyio
+async def test_profile_switch_provider_updates_active_profile(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config_path = tmp_path / "config.toml"
+    monkeypatch.setattr("psqlui.config.CONFIG_FILE", config_path)
+    profiles = [
+        ConnectionProfileConfig(name="Local Demo", metadata_key="demo"),
+        ConnectionProfileConfig(name="Analytics Replica", metadata_key="analytics"),
+    ]
+    config = AppConfig(profiles=profiles, active_profile="Local Demo")
+    monkeypatch.setattr("psqlui.app._load_app_config", lambda: config)
+
+    app = PsqluiApp()
+
+    try:
+        provider = ProfileSwitchProvider(_DummyScreen(app))
+        hits = [hit async for hit in provider.discover()]
+        target = next(hit for hit in hits if "Analytics Replica" in (hit.display or ""))
+        await target.command()
+        assert app.session_manager.active_profile_name == "Analytics Replica"
+        assert 'active_profile = "Analytics Replica"' in config_path.read_text()
     finally:
         await app.plugin_loader.shutdown()
 

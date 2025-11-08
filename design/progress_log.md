@@ -27,10 +27,11 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 16. Added in-app plugin toggles via the command palette, config persistence helpers, and a developer doc outlining the contract.
 17. Moved the plugin development guide under `docs/plugins.md` (user-facing), updated README references, and clarified agent guidance around `design/` vs `docs/` usage.
 18. Kicked off Milestone 4 navigation/data work: extended config with connection profiles, introduced a session manager feeding metadata to SQL intel, rebuilt the Textual layout with persistent nav + status bars, refreshed the query pad wiring, and added coverage for the new infrastructure.
+19. Added a profile switch command provider that updates the session manager + config, letting users swap demo profiles from the command palette (with regression tests).
 
 ## Outstanding Tasks
 - Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.
-- Finish Milestone 4 wiring: allow switching between connection profiles, persist layout/state, and replace demo metadata with a session-backed cache once a real connection manager lands.
+- Finish Milestone 4 wiring: persist layout/state, add inline profile picker UI, and replace demo metadata with a session-backed cache once a real connection manager lands.
 - Connect SQL intel + plugins to the forthcoming metadata cache/session events for live updates.
 - Track dev workflow docs + onboarding guides alongside code changes.
 

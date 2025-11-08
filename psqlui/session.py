@@ -87,6 +87,14 @@ class SessionManager:
         return self._state
 
     @property
+    def active_profile_name(self) -> str | None:
+        """Name of the currently active profile, if any."""
+
+        if self._state:
+            return self._state.profile.name
+        return None
+
+    @property
     def metadata_snapshot(self) -> Mapping[str, tuple[str, ...]]:
         """Latest metadata snapshot powering the query pad + sidebar."""
 

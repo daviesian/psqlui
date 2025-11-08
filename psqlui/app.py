@@ -18,6 +18,7 @@ from .plugins import (
     PluginLoader,
     PluginToggleProvider,
 )
+from .providers import ProfileSwitchProvider
 from .session import DEFAULT_METADATA_PRESETS, SessionManager
 from .sqlintel import SqlIntelService
 from .widgets import NavigationSidebar, QueryPad, StatusBar
@@ -51,7 +52,7 @@ def _load_app_config() -> AppConfig:
 class PsqluiApp(App[None]):
     """Minimal Textual shell that will grow into the full TUI."""
 
-    COMMANDS = App.COMMANDS | {PluginCommandProvider, PluginToggleProvider}
+    COMMANDS = App.COMMANDS | {PluginCommandProvider, PluginToggleProvider, ProfileSwitchProvider}
     CSS = """
     Screen {
         layout: vertical;
@@ -171,6 +172,18 @@ class PsqluiApp(App[None]):
         save_config(self._config)
         state = "enabled" if enabled else "disabled"
         self.notify(f"{name} {state}. Restart to apply.", severity="information")
+
+    def switch_profile(self, name: str) -> None:
+        """Activate the requested connection profile and persist the choice."""
+
+        try:
+            state = self._session_manager.connect(name)
+        except ValueError as exc:
+            self.notify(str(exc), severity="error")
+            return
+        self._config = self._config.with_active_profile(state.profile.name)
+        save_config(self._config)
+        self.notify(f"Switched to profile: {state.profile.name}", severity="information")
 
     def _create_plugin_loader(self) -> PluginLoader:
         ctx = PluginContext(
