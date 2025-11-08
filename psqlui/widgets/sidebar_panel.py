@@ -24,16 +24,13 @@ class SidebarPanel(Container):
     SidebarPanel {
         layout: horizontal;
         height: 1fr;
-        width: auto;
-        min-width: auto;
     }
 
     SidebarResizeHandle {
         width: 2;
-        min-width: 2;
         background: $surface-darken-2;
         color: $text-muted;
-        text-align: center middle;
+        text-align: center;
     }
     """
 
