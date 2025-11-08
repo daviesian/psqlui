@@ -93,3 +93,10 @@ def test_builtin_plugin_is_discovered(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert discovered
     assert discovered[0].name == HelloWorldPlugin.name
+def test_disable_list_skips_plugins() -> None:
+    loader = PluginLoader(PluginContext(), disabled_plugins={"hello-world"})
+
+    loader.discover()
+    loaded = loader.load()
+
+    assert loaded == []

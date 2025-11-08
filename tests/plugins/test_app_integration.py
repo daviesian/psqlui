@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import importlib.metadata as metadata
+from pathlib import Path
 
 import pytest
 
 from examples.plugins.hello_world import HelloWorldPlugin
 from psqlui.app import PsqluiApp
 from psqlui.config import AppConfig
-from psqlui.plugins.providers import PluginCommandProvider
+from psqlui.plugins.providers import PluginCommandProvider, PluginToggleProvider
 
 ENTRY_POINT = metadata.EntryPoint(
     name="hello-world",
@@ -101,3 +102,37 @@ class _DummyScreen:
     def __init__(self, app: PsqluiApp) -> None:
         self.app = app
         self.focused = None
+
+
+@pytest.mark.anyio
+async def test_toggle_plugin_updates_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_path = tmp_path / "config.toml"
+    monkeypatch.setattr("psqlui.config.CONFIG_FILE", config_path)
+    monkeypatch.setattr("psqlui.app._load_app_config", lambda: AppConfig())
+
+    app = PsqluiApp()
+
+    try:
+        app.toggle_plugin("hello-world", False)
+        assert "hello-world = false" in config_path.read_text()
+        assert not app.is_plugin_enabled("hello-world")
+    finally:
+        await app.plugin_loader.shutdown()
+
+
+@pytest.mark.anyio
+async def test_plugin_toggle_provider_creates_commands(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_path = tmp_path / "config.toml"
+    monkeypatch.setattr("psqlui.config.CONFIG_FILE", config_path)
+    monkeypatch.setattr("psqlui.app._load_app_config", lambda: AppConfig())
+
+    app = PsqluiApp()
+
+    try:
+        provider = PluginToggleProvider(_DummyScreen(app))
+        hits = [hit async for hit in provider.discover()]
+        assert any("Disable plugin" in (hit.text or hit.display) for hit in hits)
+        await hits[0].command()
+        assert config_path.exists()
+    finally:
+        await app.plugin_loader.shutdown()

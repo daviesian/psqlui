@@ -18,15 +18,41 @@ class AppConfig(BaseModel):
     telemetry_enabled: bool = False
     plugins: dict[str, bool] = Field(default_factory=dict)
 
-    def enabled_plugins(self) -> set[str] | None:
-        """Return the configured allow-list or None to load everything."""
+    def plugin_filters(self) -> tuple[set[str] | None, set[str]]:
+        """Return allow/block lists for plugin enablement."""
 
-        if not self.plugins:
-            return None
-        enabled = {name for name, flag in self.plugins.items() if flag}
+        allowed = {name for name, flag in self.plugins.items() if flag}
+        disabled = {name for name, flag in self.plugins.items() if not flag}
+        allowlist: set[str] | None = allowed or None
+        return allowlist, disabled
+
+    def enabled_plugins(self) -> set[str] | None:
+        """Maintain compatibility with legacy loader API."""
+
+        allowlist, _ = self.plugin_filters()
+        return allowlist
+
+    def disabled_plugins(self) -> set[str]:
+        """Plugins explicitly disabled in config."""
+
+        _, disabled = self.plugin_filters()
+        return disabled
+
+    def is_plugin_enabled(self, name: str) -> bool:
+        allowlist, disabled = self.plugin_filters()
+        if allowlist is not None:
+            return name in allowlist
+        return name not in disabled
+
+    def with_plugin_enabled(self, name: str, enabled: bool) -> AppConfig:
+        """Return a copy with the given plugin flag updated."""
+
+        plugins = dict(self.plugins)
         if enabled:
-            return enabled
-        return set()
+            plugins.pop(name, None)
+        else:
+            plugins[name] = False
+        return self.model_copy(update={"plugins": plugins})
 
 
 def load_config() -> AppConfig:
@@ -46,6 +72,23 @@ def load_config() -> AppConfig:
         ),
         plugins=data.get("plugins", {}),
     )
+
+
+def save_config(config: AppConfig) -> None:
+    """Persist configuration to disk."""
+
+    CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    lines: list[str] = [
+        f'theme = "{config.theme}"',
+        f"telemetry_enabled = {str(config.telemetry_enabled).lower()}",
+    ]
+    if config.plugins:
+        lines.append("")
+        lines.append("[plugins]")
+        for name in sorted(config.plugins):
+            flag = "true" if config.plugins[name] else "false"
+            lines.append(f"{name} = {flag}")
+    CONFIG_FILE.write_text("\n".join(lines) + "\n")
 
 
 def _read_config_file() -> dict[str, object]:

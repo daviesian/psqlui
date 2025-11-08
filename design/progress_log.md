@@ -24,9 +24,10 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 13. Added builtin plugin discovery inside `PluginLoader` so the repo-shipped `hello-world` sample surfaces without packaging entry points, wired it through the app factory, and covered the flow with loader + app-level tests.
 14. Mounted plugin pane capabilities in a sidebar container, updated the sample plugin to contribute a pane widget, and documented/validated the flow via README guidance plus pytest coverage.
 15. Implemented TOML-based config loading from `~/.config/psqlui/config.toml`, including plugin enablement parsing and regression tests for happy/missing/error cases.
+16. Added in-app plugin toggles via the command palette, config persistence helpers, and a developer doc (`design/plugin_development.md`) outlining the contract.
 
 ## Outstanding Tasks
-- Continue Milestone 3 by exposing enable/disable controls in-app, persisting plugin settings, and adding richer sample capabilities (exporters, metadata hooks).
+- Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.
 - Flesh out Textual spike (Milestone 4): persistent sidebar/query pad layout, command palette, status bar, basic session wiring.
 - Connect SQL intel to the future metadata cache once the connection/session manager lands.
 - Track dev workflow docs + onboarding guides alongside code changes.

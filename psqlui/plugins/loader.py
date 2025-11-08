@@ -66,12 +66,14 @@ class PluginLoader:
         core_version: str = CORE_VERSION,
         entry_point_group: str = ENTRY_POINT_GROUP,
         enabled_plugins: Iterable[str] | None = None,
+        disabled_plugins: Iterable[str] | None = None,
         builtin_plugins: Iterable[PluginDescriptor | type[PluginDescriptor]] | None = None,
     ) -> None:
         self._ctx = ctx
         self._core_version = core_version
         self._entry_point_group = entry_point_group
         self._enabled: set[str] | None = set(enabled_plugins) if enabled_plugins is not None else None
+        self._disabled = set(disabled_plugins or [])
         self._builtin_plugins = list(builtin_plugins or [])
         self._discovered: list[DiscoveredPlugin] = []
         self._loaded: dict[str, LoadedPlugin] = {}
@@ -106,6 +108,9 @@ class PluginLoader:
         for plugin in self._discovered:
             if self._enabled is not None and plugin.name not in self._enabled:
                 LOG.debug("Skipping disabled plugin", extra={"plugin": plugin.name})
+                continue
+            if plugin.name in self._disabled:
+                LOG.debug("Skipping plugin due to disable list", extra={"plugin": plugin.name})
                 continue
             try:
                 self._ensure_compatible(plugin)
@@ -148,6 +153,14 @@ class PluginLoader:
         """Return registered plugins."""
 
         return tuple(self._loaded.values())
+
+    @property
+    def discovered(self) -> Sequence[DiscoveredPlugin]:
+        """Return discovered plugin descriptors."""
+
+        if not self._discovered:
+            self.discover()
+        return tuple(self._discovered)
 
     def _ensure_compatible(self, plugin: DiscoveredPlugin) -> None:
         core = _parse_version(self._core_version)

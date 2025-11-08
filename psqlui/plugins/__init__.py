@@ -1,7 +1,7 @@
 """Plugin loader exports."""
 
 from .loader import LoadedPlugin, PluginLoader
-from .providers import PluginCommandProvider
+from .providers import PluginCommandProvider, PluginToggleProvider
 from .registry import PluginCommandRegistry
 from .types import (
     CapabilitySpec,
@@ -25,6 +25,7 @@ __all__ = [
     "PaneCapability",
     "PluginCompatibilityError",
     "PluginCommandProvider",
+    "PluginToggleProvider",
     "PluginCommandRegistry",
     "PluginContext",
     "PluginDescriptor",

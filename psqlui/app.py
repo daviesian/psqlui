@@ -8,7 +8,7 @@ from textual.containers import Container, Horizontal, Vertical
 from textual.widget import Widget
 from textual.widgets import Footer, Header, Static
 
-from .config import AppConfig, load_config
+from .config import AppConfig, load_config, save_config
 from .plugins import (
     CommandCapability,
     PaneCapability,
@@ -16,6 +16,7 @@ from .plugins import (
     PluginCommandRegistry,
     PluginContext,
     PluginLoader,
+    PluginToggleProvider,
 )
 from .sqlintel import SqlIntelService, StaticMetadataProvider
 from .widgets import QueryPad
@@ -49,7 +50,7 @@ def _load_app_config() -> AppConfig:
 class PsqluiApp(App[None]):
     """Minimal Textual shell that will grow into the full TUI."""
 
-    COMMANDS = App.COMMANDS | {PluginCommandProvider}
+    COMMANDS = App.COMMANDS | {PluginCommandProvider, PluginToggleProvider}
     CSS = """
     Screen {
         layout: vertical;
@@ -128,12 +129,31 @@ class PsqluiApp(App[None]):
 
         return tuple(self._pane_widgets)
 
+    def available_plugins(self) -> tuple[str, ...]:
+        """Names of discovered plugins."""
+
+        return tuple(plugin.name for plugin in self._plugin_loader.discovered)
+
+    def is_plugin_enabled(self, name: str) -> bool:
+        return self._config.is_plugin_enabled(name)
+
+    def toggle_plugin(self, name: str, enabled: bool) -> None:
+        self._config = self._config.with_plugin_enabled(name, enabled)
+        save_config(self._config)
+        state = "enabled" if enabled else "disabled"
+        self.notify(f"{name} {state}. Restart to apply.", severity="information")
+
     def _create_plugin_loader(self) -> PluginLoader:
         ctx = PluginContext(app=self, sql_intel=self._sql_service, config=self._config)
         self._plugin_context = ctx
-        enabled = self._config.enabled_plugins()
+        allowlist, disabled = self._config.plugin_filters()
         builtin_plugins = [HelloWorldPlugin] if HelloWorldPlugin is not None else None
-        return PluginLoader(ctx, enabled_plugins=enabled, builtin_plugins=builtin_plugins)
+        return PluginLoader(
+            ctx,
+            enabled_plugins=allowlist,
+            disabled_plugins=disabled,
+            builtin_plugins=builtin_plugins,
+        )
 
     async def _shutdown(self) -> None:
         await self._plugin_loader.shutdown()
