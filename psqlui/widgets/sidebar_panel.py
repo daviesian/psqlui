@@ -30,7 +30,6 @@ class SidebarPanel(Container):
         width: 1;
         min-width: 1;
         background: $surface-darken-1;
-        cursor: col-resize;
     }
     """
 
