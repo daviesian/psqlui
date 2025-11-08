@@ -3,7 +3,7 @@
 Reference playbook so any LLM agent can resume work on `psqlui` without re-reading the entire repo history.
 
 ## Before You Start
-- Read `design/progress_log.md` for the latest commit hash, outstanding tasks, and repo cleanliness. Update it at the end of **every** coding session/commit.
+- Read `design/progress_log.md` for the latest commit hash, outstanding tasks, and repo cleanliness. Update it at the end of **every** coding session/commit. The `design/` folder is for internal planning/engineering artifacts; user-facing references belong under `docs/`.
 - Skim `design/implementation_plan.md` to confirm which milestone you’re advancing. Maintain the plan when scope changes.
 - Run `git status -sb` to confirm the working tree matches the progress log assumptions.
 

@@ -5,8 +5,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 ## Current Baseline
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
-- **Latest commit**: `54d926c` — Mount plugin panes and document sample
-- **Uncommitted work**: Real config file loading (`psqlui/config.py`, `tests/test_config.py`), plus this progress log update.
+- **Latest commit**: `084b887` — Add plugin toggles and dev doc
+- **Uncommitted work**: Plugin docs relocation (`docs/plugins.md`), README + AGENTS tweaks, and this progress log update.
 
 ## Completed So Far
 1. Created `design/` hub with product overview, architecture, UI flows, roadmap, and ops/quality strategy.
@@ -24,7 +24,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 13. Added builtin plugin discovery inside `PluginLoader` so the repo-shipped `hello-world` sample surfaces without packaging entry points, wired it through the app factory, and covered the flow with loader + app-level tests.
 14. Mounted plugin pane capabilities in a sidebar container, updated the sample plugin to contribute a pane widget, and documented/validated the flow via README guidance plus pytest coverage.
 15. Implemented TOML-based config loading from `~/.config/psqlui/config.toml`, including plugin enablement parsing and regression tests for happy/missing/error cases.
-16. Added in-app plugin toggles via the command palette, config persistence helpers, and a developer doc (`design/plugin_development.md`) outlining the contract.
+16. Added in-app plugin toggles via the command palette, config persistence helpers, and a developer doc outlining the contract.
+17. Moved the plugin development guide under `docs/plugins.md` (user-facing), updated README references, and clarified agent guidance around `design/` vs `docs/` usage.
 
 ## Outstanding Tasks
 - Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.

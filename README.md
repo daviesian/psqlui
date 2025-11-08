@@ -3,7 +3,7 @@
 Cross-platform terminal UI for PostgreSQL built with Textual. See the `design/` folder for product, architecture, and roadmap docs.
 
 Additional docs:
-- `design/plugin_development.md` — quickstart for building plugins.
+- `docs/plugins.md` — quickstart for building plugins.
 
 ## Getting Started
 
