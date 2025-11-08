@@ -24,12 +24,16 @@ class SidebarPanel(Container):
     SidebarPanel {
         layout: horizontal;
         height: 1fr;
+        width: auto;
+        min-width: auto;
     }
 
     SidebarResizeHandle {
-        width: 1;
-        min-width: 1;
-        background: $surface-darken-1;
+        width: 2;
+        min-width: 2;
+        background: $surface-darken-2;
+        color: $text-muted;
+        text-align: center middle;
     }
     """
 
@@ -47,6 +51,7 @@ class SidebarPanel(Container):
         self._resizing = False
         self._start_x = 0
         self._start_width = self._width
+        self.styles.flex = "0 0 auto"
 
     @property
     def resizing(self) -> bool:
@@ -80,6 +85,7 @@ class SidebarPanel(Container):
         self.sidebar.styles.width = width
         self.sidebar.styles.min_width = width
         self.sidebar.styles.max_width = width
+        self.styles.width = width + 2
 
 
 class SidebarResizeHandle(Static):
@@ -92,7 +98,7 @@ class SidebarResizeHandle(Static):
     """
 
     def __init__(self, panel: SidebarPanel) -> None:
-        super().__init__("", id="sidebar-resize-handle")
+        super().__init__("│", id="sidebar-resize-handle")
         self._panel = panel
 
     def on_mouse_down(self, event: events.MouseDown) -> None:
