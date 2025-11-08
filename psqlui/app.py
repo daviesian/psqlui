@@ -138,10 +138,15 @@ class PsqluiApp(App[None]):
 
     async def on_mount(self) -> None:
         target = self._config.layout.last_focus
-        if target == "sidebar" and self._nav_sidebar:
-            self._nav_sidebar.focus()
-        elif target == "query_pad" and self._query_pad:
-            self._query_pad.focus()
+
+        def _restore_focus() -> None:
+            if target == "sidebar" and self._nav_sidebar:
+                self._nav_sidebar.focus_list()
+            elif target == "query_pad" and self._query_pad:
+                self._query_pad.focus_editor()
+
+        if target:
+            self.call_later(_restore_focus)
 
     def action_refresh(self) -> None:
         self._session_manager.refresh_active_profile()
