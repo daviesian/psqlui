@@ -1,6 +1,7 @@
 """Plugin loader exports."""
 
 from .loader import LoadedPlugin, PluginLoader
+from .registry import PluginCommandRegistry
 from .types import (
     CapabilitySpec,
     CommandCapability,
@@ -22,6 +23,7 @@ __all__ = [
     "MetadataHookCapability",
     "PaneCapability",
     "PluginCompatibilityError",
+    "PluginCommandRegistry",
     "PluginContext",
     "PluginDescriptor",
     "PluginError",

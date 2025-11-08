@@ -39,6 +39,7 @@ async def test_app_loads_enabled_plugins(monkeypatch: pytest.MonkeyPatch) -> Non
 
     try:
         assert app.plugin_loader.loaded
+        assert app.command_registry.list_commands()
     finally:
         await app.plugin_loader.shutdown()
 
@@ -52,5 +53,6 @@ async def test_app_respects_disabled_plugins(monkeypatch: pytest.MonkeyPatch) ->
 
     try:
         assert not app.plugin_loader.loaded
+        assert app.command_registry.list_commands() == []
     finally:
         await app.plugin_loader.shutdown()

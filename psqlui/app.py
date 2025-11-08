@@ -8,7 +8,7 @@ from textual.containers import Container
 from textual.widgets import Footer, Header, Static
 
 from .config import AppConfig, load_config
-from .plugins import PluginContext, PluginLoader
+from .plugins import CommandCapability, PluginCommandRegistry, PluginContext, PluginLoader
 from .sqlintel import SqlIntelService, StaticMetadataProvider
 from .widgets import QueryPad
 
@@ -52,8 +52,10 @@ class PsqluiApp(App[None]):
         self._config = _load_app_config()
         sample_metadata = StaticMetadataProvider(DEMO_METADATA[0])
         self._sql_service = SqlIntelService(metadata_provider=sample_metadata)
+        self._command_registry = PluginCommandRegistry()
         self._plugin_loader = self._create_plugin_loader()
         self._plugin_loader.load()
+        self._register_plugin_commands()
 
     def compose(self) -> ComposeResult:
         """Compose the root layout."""
@@ -79,6 +81,12 @@ class PsqluiApp(App[None]):
 
         return self._plugin_loader
 
+    @property
+    def command_registry(self) -> PluginCommandRegistry:
+        """Return plugin command registry."""
+
+        return self._command_registry
+
     def _create_plugin_loader(self) -> PluginLoader:
         ctx = PluginContext(app=self, sql_intel=self._sql_service, config=self._config)
         enabled = self._config.enabled_plugins()
@@ -87,6 +95,15 @@ class PsqluiApp(App[None]):
     async def _shutdown(self) -> None:
         await self._plugin_loader.shutdown()
         await super()._shutdown()
+
+    def _register_plugin_commands(self) -> None:
+        commands: list[CommandCapability] = []
+        for plugin in self._plugin_loader.loaded:
+            for capability in plugin.capabilities:
+                if isinstance(capability, CommandCapability):
+                    commands.append(capability)
+        if commands:
+            self._command_registry.register_many(commands)
 
 
 def main() -> None:
