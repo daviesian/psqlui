@@ -20,7 +20,7 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 - Break SQL intelligence into implementation tickets (parser wrapper, suggestion broker, lint rules, metadata sync).
 - Prototype plugin loader/registry to validate capability wiring.
 - Plan initial Textual spike referencing SQL intel + plugin contract.
-- Finish Milestone 1 polish (document dev workflows, ensure just targets OK) then move to Milestone 2.
+- Finish Milestone 1 polish (document dev workflows, keep tooling commands simple via uv) then move to Milestone 2.
 
 ## How to Resume
 1. `cd /home/ipd21/psqlui`

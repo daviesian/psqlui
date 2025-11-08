@@ -4,7 +4,7 @@ Short-term milestones to turn the design docs into a runnable TUI.
 
 ## Milestone 1 — Project Bootstrap
 - Initialize uv-managed Python package (`uv init`, `pyproject.toml`).
-- Set up `justfile` (or similar) with tasks: `format`, `lint`, `test`, `dev`.
+- Document standard `uv run` commands for format, lint, test, and dev (avoid requiring extra task runners).
 - Add base dependencies: `textual`, `rich`, `asyncpg`, `sqlglot`, `pydantic`, `structlog`, `ruff`, `pytest`.
 - Lay down package skeleton `psqlui/` with `__init__.py`, config loader stub, and Textual app placeholder.
 - Configure tooling: `ruff.toml`, `pyproject` scripts, formatting rules.

@@ -9,7 +9,8 @@ uv sync
 uv run textual run psqlui.app:main
 ```
 
-## Tooling
-- `uv run just lint` — lint via Ruff
-- `uv run just test` — run pytest suite
-- `uv run just dev` — launch the placeholder Textual shell
+## Common Commands
+- Format: `uv run ruff format .`
+- Lint: `uv run ruff check .`
+- Test: `uv run pytest`
+- Dev shell: `uv run textual run psqlui.app:main`

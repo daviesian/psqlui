@@ -3,7 +3,7 @@
 ## Tooling Decisions
 - Use `uv` for project scaffolding, dependency resolution, and isolated virtual envs (`uv run`, `uvx`).
 - Adopt `ruff` (lint/format) and `pytest` as default test harness; run via `uv run` for reproducible envs.
-- Provide `make`-like task runner (`justfile` or `invoke`) for common workflows (lint, test, package).
+- Publish canonical `uv run` commands for format, lint, test, and dev tasks so contributors don't need extra task runners.
 
 ## Testing Strategy
 - **Unit tests**: cover connection/session manager, SQL generation, config parsing.
@@ -17,7 +17,7 @@
 - Opt-in diagnostics command bundles logs + config snapshots for issue reports.
 
 ## Release Process
-1. Run lint/test suites locally via `uv run just ci`.
+1. Run lint/test suites locally via `uv run ruff format .`, `uv run ruff check .`, and `uv run pytest`.
 2. Manually tag and build release artifacts with `uv build`; automation can wait until the product stabilizes.
 3. Publish wheels/sdists to PyPI, attach changelog + checksum, update docs site.
 4. Provide upgrade playbook (config migrations, compatibility notes).
