@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import inspect
-from typing import Awaitable, Callable, Iterable
+from typing import Awaitable, Iterable
 
 from .types import CommandCapability
 

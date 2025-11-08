@@ -8,9 +8,20 @@ from textual.containers import Container
 from textual.widgets import Footer, Header, Static
 
 from .config import AppConfig, load_config
-from .plugins import CommandCapability, PluginCommandRegistry, PluginContext, PluginLoader
+from .plugins import (
+    CommandCapability,
+    PluginCommandProvider,
+    PluginCommandRegistry,
+    PluginContext,
+    PluginLoader,
+)
 from .sqlintel import SqlIntelService, StaticMetadataProvider
 from .widgets import QueryPad
+
+try:
+    from examples.plugins.hello_world import HelloWorldPlugin
+except ImportError:  # pragma: no cover - optional dev helper
+    HelloWorldPlugin = None
 
 
 class Hero(Static):
@@ -36,6 +47,7 @@ def _load_app_config() -> AppConfig:
 class PsqluiApp(App[None]):
     """Minimal Textual shell that will grow into the full TUI."""
 
+    COMMANDS = App.COMMANDS | {PluginCommandProvider}
     CSS = """
     Screen {
         layout: vertical;
@@ -90,7 +102,8 @@ class PsqluiApp(App[None]):
     def _create_plugin_loader(self) -> PluginLoader:
         ctx = PluginContext(app=self, sql_intel=self._sql_service, config=self._config)
         enabled = self._config.enabled_plugins()
-        return PluginLoader(ctx, enabled_plugins=enabled)
+        builtin_plugins = [HelloWorldPlugin] if HelloWorldPlugin is not None else None
+        return PluginLoader(ctx, enabled_plugins=enabled, builtin_plugins=builtin_plugins)
 
     async def _shutdown(self) -> None:
         await self._plugin_loader.shutdown()

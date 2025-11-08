@@ -5,8 +5,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 ## Current Baseline
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
-- **Latest commit**: `5de476e` — Wire plugin loader config
-- **Uncommitted work**: Plugin command registry (`psqlui/plugins/registry.py`), app wiring + tests (`psqlui/app.py`, `tests/plugins/test_registry.py`, `tests/plugins/test_app_integration.py`), and this progress log update.
+- **Latest commit**: `f42e183` — Add plugin command registry
+- **Uncommitted work**: Built-in plugin discovery support + command palette provider wiring updates (`psqlui/plugins/loader.py`, `psqlui/plugins/providers.py`, `psqlui/app.py`), sample plugin/test tweaks, and this progress log update.
 
 ## Completed So Far
 1. Created `design/` hub with product overview, architecture, UI flows, roadmap, and ops/quality strategy.
@@ -20,6 +20,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 9. Prototyped the plugin loader: capability dataclasses, `PluginContext`, entry-point discovery/registration, example `hello-world` plugin, and pytest coverage around discovery/load/shutdown paths.
 10. Extended config with plugin enablement flags, patched `PluginLoader` filtering, initialized the loader inside `PsqluiApp` (with shutdown hook), and added regression tests for config helpers plus app-level loading/disablement.
 11. Added a plugin command registry, registered plugin command capabilities during app startup, and covered the new path with registry + integration tests.
+12. Integrated plugin commands into Textual's command palette via a custom provider, exported it from the plugin package, enhanced the sample plugin to track executions, and expanded tests to cover registry execution + provider hits.
+13. Added builtin plugin discovery inside `PluginLoader` so the repo-shipped `hello-world` sample surfaces without packaging entry points, wired it through the app factory, and covered the flow with loader + app-level tests.
 
 ## Outstanding Tasks
 - Continue Milestone 3 by surfacing capability consumers in the TUI (command palette wiring, pane mounting) and exposing plugin toggles via config/UI affordances.

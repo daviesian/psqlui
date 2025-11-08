@@ -66,11 +66,13 @@ class PluginLoader:
         core_version: str = CORE_VERSION,
         entry_point_group: str = ENTRY_POINT_GROUP,
         enabled_plugins: Iterable[str] | None = None,
+        builtin_plugins: Iterable[PluginDescriptor | type[PluginDescriptor]] | None = None,
     ) -> None:
         self._ctx = ctx
         self._core_version = core_version
         self._entry_point_group = entry_point_group
         self._enabled: set[str] | None = set(enabled_plugins) if enabled_plugins is not None else None
+        self._builtin_plugins = list(builtin_plugins or [])
         self._discovered: list[DiscoveredPlugin] = []
         self._loaded: dict[str, LoadedPlugin] = {}
 
@@ -79,20 +81,20 @@ class PluginLoader:
 
         eps = metadata.entry_points()
         group = eps.select(group=self._entry_point_group)
-        discovered: list[DiscoveredPlugin] = []
+        discovered: dict[str, DiscoveredPlugin] = {}
         for entry_point in sorted(group, key=lambda ep: ep.name):
             descriptor = self._load_descriptor(entry_point)
-            discovered.append(
-                DiscoveredPlugin(
-                    name=descriptor.name,
-                    version=descriptor.version,
-                    min_core=getattr(descriptor, "min_core", "0.0.0"),
-                    entry_point=entry_point,
-                    descriptor=descriptor,
-                )
+            discovered[descriptor.name] = DiscoveredPlugin(
+                name=descriptor.name,
+                version=descriptor.version,
+                min_core=getattr(descriptor, "min_core", "0.0.0"),
+                entry_point=entry_point,
+                descriptor=descriptor,
             )
-        self._discovered = discovered
-        return discovered
+        for builtin in self._iter_builtin_plugins():
+            discovered.setdefault(builtin.name, builtin)
+        self._discovered = list(discovered.values())
+        return self._discovered
 
     def load(self) -> list[LoadedPlugin]:
         """Register capabilities for discovered plugins."""
@@ -160,3 +162,23 @@ class PluginLoader:
         if inspect.isclass(obj):
             return obj()  # type: ignore[call-arg]
         return obj  # type: ignore[return-value]
+
+    def _iter_builtin_plugins(self) -> list[DiscoveredPlugin]:
+        builtins: list[DiscoveredPlugin] = []
+        for plugin in self._builtin_plugins:
+            descriptor = plugin() if inspect.isclass(plugin) else plugin
+            entry_point = metadata.EntryPoint(
+                name=descriptor.name,
+                value=f"{descriptor.__class__.__module__}:{descriptor.__class__.__qualname__}",
+                group=self._entry_point_group,
+            )
+            builtins.append(
+                DiscoveredPlugin(
+                    name=descriptor.name,
+                    version=descriptor.version,
+                    min_core=getattr(descriptor, "min_core", "0.0.0"),
+                    entry_point=entry_point,
+                    descriptor=descriptor,
+                )
+            )
+        return builtins

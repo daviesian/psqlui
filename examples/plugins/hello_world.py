@@ -23,14 +23,14 @@ class HelloWorldPlugin(PluginDescriptor):
         self.shutdown_called = False
         self.registration_count = 0
         self.last_context: PluginContext | None = None
+        self.executions = 0
 
     def register(self, ctx: PluginContext) -> Sequence[CapabilitySpec]:
         self.registration_count += 1
         self.last_context = ctx
 
         async def _handler(*_: object, **__: object) -> None:
-            # Placeholder coroutine to satisfy the contract.
-            return None
+            self.executions += 1
 
         return [
             CommandCapability(

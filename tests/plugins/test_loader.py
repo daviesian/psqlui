@@ -82,3 +82,13 @@ async def test_shutdown_invokes_plugin_hook() -> None:
     assert not descriptor.shutdown_called
     await loader.shutdown()
     assert descriptor.shutdown_called
+
+
+def test_builtin_plugin_is_discovered(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(metadata, "entry_points", lambda: metadata.EntryPoints(()))
+    loader = PluginLoader(PluginContext(), builtin_plugins=[HelloWorldPlugin])
+
+    discovered = loader.discover()
+
+    assert discovered
+    assert discovered[0].name == HelloWorldPlugin.name
