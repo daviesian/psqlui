@@ -5,8 +5,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 ## Current Baseline
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
-- **Latest commit**: Polish SQL intelligence milestone (function/snippet catalogs, richer linting, metadata refresh UI, expanded tests)
-- **Uncommitted work**: _none (clean tree after latest commit)._
+- **Latest commit**: Add agent runbook and update progress log (documented agent SOP + log refresh)
+- **Uncommitted work**: AGENTS.md edit (ban `UV_CACHE_DIR`) + progress log adjustment.
 
 ## Completed So Far
 1. Created `design/` hub with product overview, architecture, UI flows, roadmap, and ops/quality strategy.
@@ -16,7 +16,7 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 5. Added `design/implementation_plan.md` describing near-term milestones (bootstrap, SQL intelligence foundation, plugin loader, navigation/data basics).
 6. Completed Milestone 1 bootstrap: uv-managed project scaffold (`pyproject.toml`, `uv.lock`, `psqlui/` package, Textual placeholder app, tests, tooling config).
 7. Completed Milestone 2 foundations: `SqlIntelService`, keyword/function/snippet catalogs, static metadata provider with refresh hooks, lint rules, Textual query pad integration (with metadata cycling and suggestion preview), and async unit tests covering analysis/suggestions/linting.
-8. Added `AGENTS.md` runbook capturing agent-specific instructions (read progress log first, avoid running the TUI interactively, prefer uv commands, update docs each session).
+8. Added `AGENTS.md` runbook capturing agent-specific instructions (read progress log first, avoid running the TUI interactively, prefer uv commands, update docs each session, never override `UV_CACHE_DIR`, request elevated permissions for out-of-sandbox writes).
 
 ## Outstanding Tasks
 - Prototype plugin loader/registry (Milestone 3): entry-point discovery, `PluginContext`, capability wiring, sample plugin + tests.

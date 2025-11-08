@@ -11,11 +11,12 @@ Reference playbook so any LLM agent can resume work on `psqlui` without re-readi
 - Python 3.12 project managed with `uv`; run all tooling via `uv run …`. Use the provided lockfile.
 - Current focus: Milestone 3 (plugin loader) unless the progress log specifies otherwise; Milestone 2 (SQL intel) is complete.
 - Core app is a Textual TUI. **Do not launch interactive commands** like `uv run python -m psqlui` inside the harness because you cannot send Ctrl+C; rely on unit tests or describe expected behaviour instead.
+- **Never override `UV_CACHE_DIR`.** Commands should use the default cache; if you must write outside the workspace (e.g., installer wants `/var`), rerun with `with_escalated_permissions` instead of redirecting caches.
 
 ## Common Commands
-- Tests: `UV_CACHE_DIR=.uv-cache uv run pytest`
+- Tests: `uv run pytest`
 - Lint/format (if needed): `uv run ruff check .` / `uv run ruff format .`
-- Dev shell for quick scripts: `UV_CACHE_DIR=.uv-cache uv run python - <<'PY' … PY`
+- Dev shell for quick scripts: `uv run python - <<'PY' … PY`
 
 ## Coding Workflow
 1. Create/update files using ASCII, keep comments minimal and meaningful.
