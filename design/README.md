@@ -7,6 +7,7 @@ This folder captures the evolving design for a cross-platform terminal UI that l
 - [Architecture](architecture.md) — platform decisions, layers, and integration points.
 - [SQL Intelligence](sql_intelligence.md) — parser/autocomplete strategy and editor services.
 - [Plugin Contract](plugin_contract.md) — capability model and lifecycle for extensions.
+- [Implementation Plan](implementation_plan.md) — near-term milestones and sequencing.
 - [UI Flows](ui_flows.md) — navigation, key screens, and interaction model.
 - [Roadmap](roadmap.md) — phased plan from prototype to polish.
 - [Ops & Quality](ops_quality.md) — tooling, test strategy, and release hygiene.
