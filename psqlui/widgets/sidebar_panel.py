@@ -28,6 +28,7 @@ class SidebarPanel(Container):
 
     SidebarResizeHandle {
         width: 2;
+        height: 1fr;
         background: $surface-darken-2;
         color: $text-muted;
         text-align: center;
@@ -99,7 +100,7 @@ class SidebarResizeHandle(Static):
         self._panel = panel
 
     def on_mouse_down(self, event: events.MouseDown) -> None:
-        event.capture_mouse()
+        self.capture_mouse()
         self._panel.begin_resize(event.screen_x)
 
     def on_mouse_move(self, event: events.MouseMove) -> None:
@@ -107,7 +108,7 @@ class SidebarResizeHandle(Static):
             self._panel.update_resize(event.screen_x)
 
     def on_mouse_up(self, event: events.MouseUp) -> None:
-        event.release_mouse()
+        self.release_mouse()
         self._panel.end_resize()
 
 
