@@ -5,8 +5,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 ## Current Baseline
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
-- **Latest commit**: `1b582d8` — Add interactive sidebar and demo connection backend
-- **Uncommitted work**: Sidebar ListView fix (pre-built items) and this progress log update.
+- **Latest commit**: `cd0b63b` — Fix sidebar list rendering
+- **Uncommitted work**: Session refresh timestamp/status updates, metadata refresh provider/tests, and this progress log entry.
 
 ## Completed So Far
 1. Created `design/` hub with product overview, architecture, UI flows, roadmap, and ops/quality strategy.
@@ -30,6 +30,7 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 19. Added a profile switch command provider that updates the session manager + config, letting users swap demo profiles from the command palette (with regression tests).
 20. Made the navigation sidebar focusable for inline profile switching, introduced a `DemoConnectionBackend` that emits metadata snapshots, hooked Ctrl+R to refresh the active session, and expanded coverage (`tests/test_connections.py`, refreshed session tests).
 21. Fixed the sidebar profile list so entries render reliably by pre-building `ListView` items during compose, avoiding the async mount issues that left the pane blank.
+22. Added session refresh timestamps (shown in the status bar), wired the session manager to generate timezone-aware updates, and exposed a command-palette `Refresh active profile metadata` action alongside coverage.
 
 ## Outstanding Tasks
 - Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.
@@ -39,8 +40,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 
 ## How to Resume
 1. `cd /home/ipd21/psqlui`
-2. `git status` (expect `psqlui/widgets/navigation_sidebar.py` and this log).
-3. Continue editing or start a commit capturing the sidebar rendering fix once ready.
+2. `git status` (expect session/widget/provider/test updates and this log).
+3. Continue editing or start a commit capturing the refresh provider/status work once ready.
 
 Keep this file updated whenever major decisions land so future contexts know the state of play.
 ## Update Ritual

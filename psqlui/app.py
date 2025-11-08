@@ -18,7 +18,7 @@ from .plugins import (
     PluginLoader,
     PluginToggleProvider,
 )
-from .providers import ProfileSwitchProvider
+from .providers import ProfileSwitchProvider, SessionRefreshProvider
 from .session import SessionManager
 from .sqlintel import SqlIntelService
 from .widgets import NavigationSidebar, QueryPad, StatusBar
@@ -52,7 +52,7 @@ def _load_app_config() -> AppConfig:
 class PsqluiApp(App[None]):
     """Minimal Textual shell that will grow into the full TUI."""
 
-    COMMANDS = App.COMMANDS | {PluginCommandProvider, PluginToggleProvider, ProfileSwitchProvider}
+    COMMANDS = App.COMMANDS | {PluginCommandProvider, PluginToggleProvider, ProfileSwitchProvider, SessionRefreshProvider}
     CSS = """
     Screen {
         layout: vertical;

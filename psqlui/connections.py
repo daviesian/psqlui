@@ -56,7 +56,6 @@ class DemoConnectionBackend:
         """Simulate connecting to a profile and emit its metadata."""
 
         metadata = self._metadata_for(profile, advance=False)
-        self._emit(profile, metadata)
         return metadata
 
     def refresh(self, profile: "ConnectionProfile") -> None:

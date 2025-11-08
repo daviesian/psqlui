@@ -38,7 +38,10 @@ class StatusBar(Static):
         tables = len(state.metadata)
         schemas = len({table.split(".")[0] if "." in table else "public" for table in state.metadata})
         status = "Connected" if state.connected else "Idle"
-        self.update(f"Profile: {state.profile.name} | Schemas: {schemas} | Tables: {tables} | Status: {status}")
+        refreshed = state.refreshed_at.astimezone().strftime("%H:%M:%S")
+        self.update(
+            f"Profile: {state.profile.name} | Schemas: {schemas} | Tables: {tables} | Status: {status} | Refreshed: {refreshed}"
+        )
 
 
 __all__ = ["StatusBar"]

@@ -11,7 +11,7 @@ from examples.plugins.hello_world import HelloWorldPlugin
 from psqlui.app import PsqluiApp
 from psqlui.config import AppConfig, ConnectionProfileConfig
 from psqlui.plugins.providers import PluginCommandProvider, PluginToggleProvider
-from psqlui.providers import ProfileSwitchProvider
+from psqlui.providers import ProfileSwitchProvider, SessionRefreshProvider
 
 ENTRY_POINT = metadata.EntryPoint(
     name="hello-world",
@@ -85,6 +85,32 @@ async def test_profile_switch_provider_updates_active_profile(
         await target.command()
         assert app.session_manager.active_profile_name == "Analytics Replica"
         assert 'active_profile = "Analytics Replica"' in config_path.read_text()
+    finally:
+        await app.plugin_loader.shutdown()
+
+
+@pytest.mark.anyio
+async def test_session_refresh_provider_triggers_refresh(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = AppConfig()
+    monkeypatch.setattr("psqlui.app._load_app_config", lambda: config)
+
+    app = PsqluiApp()
+
+    try:
+        called = False
+        original = app.session_manager.refresh_active_profile
+
+        def _fake_refresh() -> None:
+            nonlocal called
+            called = True
+            original()
+
+        app.session_manager.refresh_active_profile = _fake_refresh  # type: ignore[assignment]
+        provider = SessionRefreshProvider(_DummyScreen(app))
+        hits = [hit async for hit in provider.discover()]
+        assert hits
+        await hits[0].command()
+        assert called
     finally:
         await app.plugin_loader.shutdown()
 

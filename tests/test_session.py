@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from psqlui.config import AppConfig, ConnectionProfileConfig
 from psqlui.connections import DemoConnectionBackend
 from psqlui.session import SessionManager
@@ -24,6 +26,7 @@ def test_session_manager_connects_first_profile_by_default() -> None:
     assert manager.state is not None
     assert manager.state.connected is True
     assert manager.state.metadata
+    assert manager.state.refreshed_at is not None
     assert service.last_metadata == dict(manager.state.metadata)
 
 
@@ -36,13 +39,20 @@ def test_session_manager_switches_profiles_and_notifies_listeners() -> None:
     service = _SqlIntelStub()
     manager = SessionManager(service, config=config, backend=DemoConnectionBackend())
     seen: list[str] = []
+    timestamps: list[datetime] = []
 
-    unsubscribe = manager.subscribe(lambda state: seen.append(state.profile.name))
+    def _listener(state):
+        seen.append(state.profile.name)
+        timestamps.append(state.refreshed_at)
+
+    unsubscribe = manager.subscribe(_listener)
+    assert timestamps
     manager.connect("Replica")
 
     assert seen[-1] == "Replica"
     assert manager.state is not None and manager.state.profile.name == "Replica"
     assert service.last_metadata == dict(manager.state.metadata)
+    assert timestamps[-1] >= timestamps[0]
     unsubscribe()
 
 
@@ -74,6 +84,8 @@ def test_refresh_cycle_updates_metadata() -> None:
     lengths: list[int] = []
 
     manager.subscribe(lambda state: lengths.append(len(state.metadata["public.accounts"])))
+    initial_timestamp = manager.state.refreshed_at
     manager.refresh_active_profile()
 
     assert lengths[-1] == 2
+    assert manager.state.refreshed_at > initial_timestamp

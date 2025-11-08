@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Callable, Mapping
 
 from .config import AppConfig, ConnectionProfileConfig
@@ -33,6 +34,7 @@ class SessionState:
     profile: ConnectionProfile
     connected: bool
     metadata: Mapping[str, tuple[str, ...]]
+    refreshed_at: datetime
 
 
 class SessionManager:
@@ -89,7 +91,7 @@ class SessionManager:
 
         profile = self._profile_by_name(name)
         metadata = self._backend.connect(profile)
-        self._update_state(profile, metadata)
+        self._update_state(profile, metadata, refreshed_at=datetime.now(tz=timezone.utc))
         return self._state
 
     def refresh_active_profile(self) -> None:
@@ -137,9 +139,20 @@ class SessionManager:
             metadata=metadata,
         )
 
-    def _update_state(self, profile: ConnectionProfile, metadata: MetadataSnapshot) -> None:
+    def _update_state(
+        self,
+        profile: ConnectionProfile,
+        metadata: MetadataSnapshot,
+        *,
+        refreshed_at: datetime | None = None,
+    ) -> None:
         self._sql_intel.update_metadata(metadata)
-        self._state = SessionState(profile=profile, connected=True, metadata=metadata)
+        self._state = SessionState(
+            profile=profile,
+            connected=True,
+            metadata=metadata,
+            refreshed_at=refreshed_at or datetime.now(tz=timezone.utc),
+        )
         self._notify()
 
     def _handle_backend_event(self, profile: ConnectionProfile, metadata: MetadataSnapshot) -> None:
@@ -147,7 +160,7 @@ class SessionManager:
             return
         if profile.name != self._state.profile.name:
             return
-        self._update_state(profile, metadata)
+        self._update_state(profile, metadata, refreshed_at=datetime.now(tz=timezone.utc))
 
     def _notify(self) -> None:
         if not self._state:
