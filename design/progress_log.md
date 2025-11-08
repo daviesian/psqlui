@@ -5,8 +5,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 ## Current Baseline
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
-- **Latest commit**: `da9fd65` — Add profile switch provider and update runbook
-- **Uncommitted work**: Interactive profile sidebar, demo connection backend with metadata refreshes, updated session/query wiring, new tests/docs, and this progress log entry.
+- **Latest commit**: `1b582d8` — Add interactive sidebar and demo connection backend
+- **Uncommitted work**: Sidebar ListView fix (pre-built items) and this progress log update.
 
 ## Completed So Far
 1. Created `design/` hub with product overview, architecture, UI flows, roadmap, and ops/quality strategy.
@@ -29,6 +29,7 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 18. Kicked off Milestone 4 navigation/data work: extended config with connection profiles, introduced a session manager feeding metadata to SQL intel, rebuilt the Textual layout with persistent nav + status bars, refreshed the query pad wiring, and added coverage for the new infrastructure.
 19. Added a profile switch command provider that updates the session manager + config, letting users swap demo profiles from the command palette (with regression tests).
 20. Made the navigation sidebar focusable for inline profile switching, introduced a `DemoConnectionBackend` that emits metadata snapshots, hooked Ctrl+R to refresh the active session, and expanded coverage (`tests/test_connections.py`, refreshed session tests).
+21. Fixed the sidebar profile list so entries render reliably by pre-building `ListView` items during compose, avoiding the async mount issues that left the pane blank.
 
 ## Outstanding Tasks
 - Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.
@@ -38,8 +39,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 
 ## How to Resume
 1. `cd /home/ipd21/psqlui`
-2. `git status` (expect `psqlui/app.py`, `psqlui/session.py`, `psqlui/connections.py`, `psqlui/widgets/navigation_sidebar.py`, `tests/**`, and this log).
-3. Continue editing or start a commit capturing the Milestone 4 sidebar/backend work + docs/tests once ready.
+2. `git status` (expect `psqlui/widgets/navigation_sidebar.py` and this log).
+3. Continue editing or start a commit capturing the sidebar rendering fix once ready.
 
 Keep this file updated whenever major decisions land so future contexts know the state of play.
 ## Update Ritual

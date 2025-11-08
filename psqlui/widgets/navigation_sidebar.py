@@ -50,12 +50,15 @@ class NavigationSidebar(Container):
         super().__init__(id="nav-sidebar")
         self._session_manager = session_manager
         self._profile_list: ListView | None = None
+        self._profile_items: dict[str, _ProfileListItem] = {}
         self._schemas: Static | None = None
         self._unsubscribe: Callable[[], None] | None = None
 
     def compose(self) -> ComposeResult:
         yield Static("Connections", classes="sidebar-heading")
-        self._profile_list = ListView(id="profile-list")
+        items = [_ProfileListItem(profile.name) for profile in self._session_manager.profiles]
+        self._profile_items = {item.profile_name: item for item in items}
+        self._profile_list = ListView(*items, id="profile-list")
         yield self._profile_list
         yield Static("Schemas", classes="sidebar-heading")
         self._schemas = Static("No schemas loaded.", id="schema-list", classes="sidebar-section")
@@ -76,15 +79,16 @@ class NavigationSidebar(Container):
     def _render_connections(self, state: SessionState) -> None:
         if not self._profile_list:
             return
-        self._profile_list.clear()
+        profiles = list(self._session_manager.profiles)
         active_index = 0
-        for idx, profile in enumerate(self._session_manager.profiles):
-            item = _ProfileListItem(profile.name)
+        for idx, profile in enumerate(profiles):
+            item = self._profile_items.get(profile.name)
+            if item is None:
+                continue
             item.set_class(profile.name == state.profile.name, "active")
-            self._profile_list.append(item)
             if profile.name == state.profile.name:
                 active_index = idx
-        if self._profile_list.children:
+        if profiles:
             self._profile_list.index = active_index
 
     def _render_schemas(self, state: SessionState) -> None:
