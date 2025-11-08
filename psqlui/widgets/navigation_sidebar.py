@@ -5,9 +5,10 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Callable
 
+from textual import on
 from textual.app import ComposeResult
 from textual.containers import Container
-from textual.widgets import Static
+from textual.widgets import Label, ListItem, ListView, Static
 
 from psqlui.session import SessionManager, SessionState
 
@@ -33,19 +34,29 @@ class NavigationSidebar(Container):
     NavigationSidebar .sidebar-section {
         margin-bottom: 2;
     }
+
+    #profile-list {
+        height: 6;
+        border: round $primary 30%;
+        margin-bottom: 2;
+    }
+
+    #profile-list .active {
+        text-style: bold;
+    }
     """
 
     def __init__(self, session_manager: SessionManager) -> None:
         super().__init__(id="nav-sidebar")
         self._session_manager = session_manager
-        self._connections: Static | None = None
+        self._profile_list: ListView | None = None
         self._schemas: Static | None = None
         self._unsubscribe: Callable[[], None] | None = None
 
     def compose(self) -> ComposeResult:
         yield Static("Connections", classes="sidebar-heading")
-        self._connections = Static("Loading profiles...", id="connection-list", classes="sidebar-section")
-        yield self._connections
+        self._profile_list = ListView(id="profile-list")
+        yield self._profile_list
         yield Static("Schemas", classes="sidebar-heading")
         self._schemas = Static("No schemas loaded.", id="schema-list", classes="sidebar-section")
         yield self._schemas
@@ -63,15 +74,18 @@ class NavigationSidebar(Container):
         self._render_schemas(state)
 
     def _render_connections(self, state: SessionState) -> None:
-        if not self._connections:
+        if not self._profile_list:
             return
-        lines = []
-        for profile in self._session_manager.profiles:
-            marker = "*" if profile.name == state.profile.name else " "
-            lines.append(f"{marker} {profile.name}")
-        if not lines:
-            lines = ["No profiles configured."]
-        self._connections.update("\n".join(lines))
+        self._profile_list.clear()
+        active_index = 0
+        for idx, profile in enumerate(self._session_manager.profiles):
+            item = _ProfileListItem(profile.name)
+            item.set_class(profile.name == state.profile.name, "active")
+            self._profile_list.append(item)
+            if profile.name == state.profile.name:
+                active_index = idx
+        if self._profile_list.children:
+            self._profile_list.index = active_index
 
     def _render_schemas(self, state: SessionState) -> None:
         if not self._schemas:
@@ -93,6 +107,28 @@ class NavigationSidebar(Container):
             for rel in buckets[schema][:5]:
                 lines.append(f"  - {rel}")
         self._schemas.update("\n".join(lines))
+
+    @on(ListView.Selected)
+    def _handle_profile_selected(self, event: ListView.Selected) -> None:
+        if self._profile_list is None or event.list_view.id != "profile-list":
+            return
+        item = event.item
+        if isinstance(item, _ProfileListItem):
+            self._request_switch(item.profile_name)
+
+    def _request_switch(self, name: str) -> None:
+        switcher = getattr(self.app, "switch_profile", None)
+        if switcher is None:
+            return
+        switcher(name)
+
+
+class _ProfileListItem(ListItem):
+    """List item storing a profile name for selection callbacks."""
+
+    def __init__(self, name: str) -> None:
+        super().__init__(Label(name))
+        self.profile_name = name
 
 
 __all__ = ["NavigationSidebar"]

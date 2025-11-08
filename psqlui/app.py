@@ -19,7 +19,7 @@ from .plugins import (
     PluginToggleProvider,
 )
 from .providers import ProfileSwitchProvider
-from .session import DEFAULT_METADATA_PRESETS, SessionManager
+from .session import SessionManager
 from .sqlintel import SqlIntelService
 from .widgets import NavigationSidebar, QueryPad, StatusBar
 
@@ -97,11 +97,7 @@ class PsqluiApp(App[None]):
         super().__init__()
         self._config = _load_app_config()
         self._sql_service = SqlIntelService()
-        self._session_manager = SessionManager(
-            self._sql_service,
-            config=self._config,
-            metadata_presets=DEFAULT_METADATA_PRESETS,
-        )
+        self._session_manager = SessionManager(self._sql_service, config=self._config)
         if self._session_manager.state:
             self._config = self._config.with_active_profile(self._session_manager.state.profile.name)
         self._command_registry = PluginCommandRegistry()
@@ -133,6 +129,7 @@ class PsqluiApp(App[None]):
 
     @on("refresh")
     def _handle_refresh(self) -> None:
+        self._session_manager.refresh_active_profile()
         self.bell()
 
     @property

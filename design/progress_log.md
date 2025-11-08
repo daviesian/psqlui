@@ -5,8 +5,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 ## Current Baseline
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
-- **Latest commit**: `30b7c7c` — Move plugin docs under docs/
-- **Uncommitted work**: Milestone 4 scaffolding (session manager, sidebar/layout overhaul, status bar, QueryPad refresh), config/test updates, and this progress log entry.
+- **Latest commit**: `da9fd65` — Add profile switch provider and update runbook
+- **Uncommitted work**: Interactive profile sidebar, demo connection backend with metadata refreshes, updated session/query wiring, new tests/docs, and this progress log entry.
 
 ## Completed So Far
 1. Created `design/` hub with product overview, architecture, UI flows, roadmap, and ops/quality strategy.
@@ -28,17 +28,18 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 17. Moved the plugin development guide under `docs/plugins.md` (user-facing), updated README references, and clarified agent guidance around `design/` vs `docs/` usage.
 18. Kicked off Milestone 4 navigation/data work: extended config with connection profiles, introduced a session manager feeding metadata to SQL intel, rebuilt the Textual layout with persistent nav + status bars, refreshed the query pad wiring, and added coverage for the new infrastructure.
 19. Added a profile switch command provider that updates the session manager + config, letting users swap demo profiles from the command palette (with regression tests).
+20. Made the navigation sidebar focusable for inline profile switching, introduced a `DemoConnectionBackend` that emits metadata snapshots, hooked Ctrl+R to refresh the active session, and expanded coverage (`tests/test_connections.py`, refreshed session tests).
 
 ## Outstanding Tasks
 - Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.
-- Finish Milestone 4 wiring: persist layout/state, add inline profile picker UI, and replace demo metadata with a session-backed cache once a real connection manager lands.
-- Connect SQL intel + plugins to the forthcoming metadata cache/session events for live updates.
+- Finish Milestone 4 wiring: persist layout/state, round out the inline profile picker UX (indicators, mouse clicks), and replace demo metadata with a real connection/session cache once that service lands.
+- Connect SQL intel + plugins to the new connection backend events (propagate refresh/errors) as we swap in a real driver.
 - Track dev workflow docs + onboarding guides alongside code changes.
 
 ## How to Resume
 1. `cd /home/ipd21/psqlui`
-2. `git status` (expect `psqlui/app.py`, `psqlui/config.py`, `psqlui/session.py`, `psqlui/widgets/*`, `tests/**`, and this log).
-3. Continue editing or start a commit capturing the Milestone 4 scaffolding + docs/tests once ready.
+2. `git status` (expect `psqlui/app.py`, `psqlui/session.py`, `psqlui/connections.py`, `psqlui/widgets/navigation_sidebar.py`, `tests/**`, and this log).
+3. Continue editing or start a commit capturing the Milestone 4 sidebar/backend work + docs/tests once ready.
 
 Keep this file updated whenever major decisions land so future contexts know the state of play.
 ## Update Ritual

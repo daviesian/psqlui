@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Mapping, Sequence
+from typing import Callable, Mapping
 
 from .config import AppConfig, ConnectionProfileConfig
+from .connections import DemoConnectionBackend, MetadataSnapshot
 from .sqlintel import SqlIntelService
 
-MetadataSnapshot = Mapping[str, Sequence[str]]
 SessionListener = Callable[["SessionState"], None]
 
 
@@ -35,19 +35,6 @@ class SessionState:
     metadata: Mapping[str, tuple[str, ...]]
 
 
-DEFAULT_METADATA_PRESETS: dict[str, Mapping[str, tuple[str, ...]]] = {
-    "demo": {
-        "public.accounts": ("id", "email", "last_login"),
-        "public.orders": ("id", "account_id", "total"),
-        "public.payments": ("id", "order_id", "amount"),
-    },
-    "analytics": {
-        "analytics.sessions": ("id", "user_id", "started_at", "device"),
-        "analytics.events": ("id", "session_id", "name", "payload"),
-    },
-}
-
-
 class SessionManager:
     """Lightweight session orchestrator for the Textual demo."""
 
@@ -56,20 +43,15 @@ class SessionManager:
         sql_intel: SqlIntelService,
         *,
         config: AppConfig,
-        metadata_presets: Mapping[str, Mapping[str, Sequence[str]]] | None = None,
+        backend: DemoConnectionBackend | None = None,
     ) -> None:
         self._sql_intel = sql_intel
         self._config = config
-        self._metadata_presets = {
-            key: {
-                table: tuple(columns)
-                for table, columns in preset.items()
-            }
-            for key, preset in (metadata_presets or DEFAULT_METADATA_PRESETS).items()
-        }
         self._profiles = tuple(self._from_config(entry) for entry in config.profiles)
         self._listeners: set[SessionListener] = set()
         self._state: SessionState | None = None
+        self._backend = backend or DemoConnectionBackend()
+        self._backend_unsubscribe = self._backend.subscribe(self._handle_backend_event)
         active_name = config.active_profile or (self._profiles[0].name if self._profiles else None)
         if active_name and self._profiles:
             self.connect(active_name)
@@ -106,11 +88,16 @@ class SessionManager:
         """Activate the requested profile."""
 
         profile = self._profile_by_name(name)
-        metadata = self._resolve_metadata(profile)
-        self._sql_intel.update_metadata(metadata)
-        self._state = SessionState(profile=profile, connected=True, metadata=metadata)
-        self._notify()
+        metadata = self._backend.connect(profile)
+        self._update_state(profile, metadata)
         return self._state
+
+    def refresh_active_profile(self) -> None:
+        """Request a metadata refresh for the active profile."""
+
+        if not self._state:
+            return
+        self._backend.refresh(self._state.profile)
 
     def subscribe(self, listener: SessionListener) -> Callable[[], None]:
         """Subscribe to session updates; returns an unsubscribe handle."""
@@ -150,14 +137,17 @@ class SessionManager:
             metadata=metadata,
         )
 
-    def _resolve_metadata(self, profile: ConnectionProfile) -> Mapping[str, tuple[str, ...]]:
-        if profile.metadata:
-            return profile.metadata
-        if profile.metadata_key and profile.metadata_key in self._metadata_presets:
-            return self._metadata_presets[profile.metadata_key]
-        if self._metadata_presets:
-            return next(iter(self._metadata_presets.values()))
-        return {}
+    def _update_state(self, profile: ConnectionProfile, metadata: MetadataSnapshot) -> None:
+        self._sql_intel.update_metadata(metadata)
+        self._state = SessionState(profile=profile, connected=True, metadata=metadata)
+        self._notify()
+
+    def _handle_backend_event(self, profile: ConnectionProfile, metadata: MetadataSnapshot) -> None:
+        if not self._state:
+            return
+        if profile.name != self._state.profile.name:
+            return
+        self._update_state(profile, metadata)
 
     def _notify(self) -> None:
         if not self._state:
@@ -168,7 +158,6 @@ class SessionManager:
 
 __all__ = [
     "ConnectionProfile",
-    "DEFAULT_METADATA_PRESETS",
     "SessionManager",
     "SessionState",
 ]

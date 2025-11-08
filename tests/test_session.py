@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from psqlui.config import AppConfig, ConnectionProfileConfig
-from psqlui.session import DEFAULT_METADATA_PRESETS, SessionManager
+from psqlui.connections import DemoConnectionBackend
+from psqlui.session import SessionManager
 
 
 class _SqlIntelStub:
@@ -18,7 +19,7 @@ def test_session_manager_connects_first_profile_by_default() -> None:
     config = AppConfig()
     service = _SqlIntelStub()
 
-    manager = SessionManager(service, config=config, metadata_presets=DEFAULT_METADATA_PRESETS)
+    manager = SessionManager(service, config=config, backend=DemoConnectionBackend())
 
     assert manager.state is not None
     assert manager.state.connected is True
@@ -33,7 +34,7 @@ def test_session_manager_switches_profiles_and_notifies_listeners() -> None:
     ]
     config = AppConfig(profiles=profiles, active_profile="Local")
     service = _SqlIntelStub()
-    manager = SessionManager(service, config=config, metadata_presets=DEFAULT_METADATA_PRESETS)
+    manager = SessionManager(service, config=config, backend=DemoConnectionBackend())
     seen: list[str] = []
 
     unsubscribe = manager.subscribe(lambda state: seen.append(state.profile.name))
@@ -48,7 +49,7 @@ def test_session_manager_switches_profiles_and_notifies_listeners() -> None:
 def test_session_manager_errors_on_missing_profile() -> None:
     config = AppConfig(profiles=[ConnectionProfileConfig(name="Only", metadata_key="demo")])
     service = _SqlIntelStub()
-    manager = SessionManager(service, config=config, metadata_presets=DEFAULT_METADATA_PRESETS)
+    manager = SessionManager(service, config=config, backend=DemoConnectionBackend())
 
     try:
         manager.connect("unknown")
@@ -56,3 +57,23 @@ def test_session_manager_errors_on_missing_profile() -> None:
         assert "Profile 'unknown' not found" in str(exc)
     else:  # pragma: no cover - defensive, should not happen
         assert False, "Expected ValueError for missing profile"
+
+
+def test_refresh_cycle_updates_metadata() -> None:
+    backend = DemoConnectionBackend(
+        {
+            "demo": (
+                {"public.accounts": ("id",)},
+                {"public.accounts": ("id", "email")},
+            )
+        }
+    )
+    config = AppConfig(profiles=[ConnectionProfileConfig(name="Local", metadata_key="demo")], active_profile="Local")
+    service = _SqlIntelStub()
+    manager = SessionManager(service, config=config, backend=backend)
+    lengths: list[int] = []
+
+    manager.subscribe(lambda state: lengths.append(len(state.metadata["public.accounts"])))
+    manager.refresh_active_profile()
+
+    assert lengths[-1] == 2
