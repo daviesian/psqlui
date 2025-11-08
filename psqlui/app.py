@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical
 from textual.widget import Widget
@@ -127,8 +126,7 @@ class PsqluiApp(App[None]):
         yield StatusBar(self._session_manager)
         yield Footer()
 
-    @on("refresh")
-    def _handle_refresh(self) -> None:
+    def action_refresh(self) -> None:
         self._session_manager.refresh_active_profile()
         self.bell()
 

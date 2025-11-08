@@ -116,6 +116,29 @@ async def test_session_refresh_provider_triggers_refresh(monkeypatch: pytest.Mon
 
 
 @pytest.mark.anyio
+async def test_refresh_action_invokes_session_manager(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = AppConfig()
+    monkeypatch.setattr("psqlui.app._load_app_config", lambda: config)
+
+    app = PsqluiApp()
+
+    try:
+        called = False
+        original = app.session_manager.refresh_active_profile
+
+        def _fake_refresh() -> None:
+            nonlocal called
+            called = True
+            original()
+
+        app.session_manager.refresh_active_profile = _fake_refresh  # type: ignore[assignment]
+        app.action_refresh()
+        assert called
+    finally:
+        await app.plugin_loader.shutdown()
+
+
+@pytest.mark.anyio
 async def test_app_respects_disabled_plugins(monkeypatch: pytest.MonkeyPatch) -> None:
     config = AppConfig(plugins={HelloWorldPlugin.name: False})
     monkeypatch.setattr("psqlui.app._load_app_config", lambda: config)
