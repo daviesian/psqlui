@@ -1,0 +1,28 @@
+[project]
+name = "psqlui"
+version = "0.1.0"
+description = "Terminal UI for PostgreSQL"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "anyio>=4.11.0",
+    "asyncpg>=0.30.0",
+    "psycopg[binary]>=3.2.12",
+    "pydantic>=2.12.4",
+    "rich>=14.2.0",
+    "sqlglot>=27.29.0",
+    "structlog>=25.5.0",
+    "textual>=6.5.0",
+]
+
+[project.scripts]
+psqlui = "psqlui.app:main"
+
+[tool.uv]
+package = true
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "ruff>=0.14.4",
+]
