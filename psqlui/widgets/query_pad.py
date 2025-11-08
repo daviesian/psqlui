@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Callable, Mapping, Sequence
 
-from textual import events
+from textual import events, on
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.widgets import Input, Static
@@ -75,7 +75,8 @@ class QueryPad(Container):
         """Compose the input + suggestion panes."""
 
         yield Static("Query Pad", classes="panel-title")
-        yield Input(
+        yield _RememberingInput(
+            self._report_focus,
             placeholder="Type SQL, e.g. SELECT * FROM accounts WHERE id = 1;",
             id="query-input",
         )
@@ -160,6 +161,18 @@ class QueryPad(Container):
     def focus_editor(self) -> None:
         if self._input:
             self._input.focus()
+
+
+class _RememberingInput(Input):
+    """Input that notifies a callback when it gains focus."""
+
+    def __init__(self, on_focus_callback: Callable[[], None], **kwargs: object) -> None:
+        super().__init__(**kwargs)
+        self._on_focus_callback = on_focus_callback
+
+    def on_focus(self, event: events.Focus) -> None:
+        super().on_focus(event)
+        self._on_focus_callback()
 
 
 __all__ = ["QueryPad"]
