@@ -37,20 +37,6 @@ except ImportError:  # pragma: no cover - optional dev helper
 LOG = logging.getLogger(__name__)
 
 
-class Hero(Static):
-    """Splash widget shown in the placeholder UI."""
-
-    DEFAULT_CSS = """
-    Hero {
-        content-align: center middle;
-        height: 1fr;
-    }
-    """
-
-    def __init__(self) -> None:
-        super().__init__("PSQL UI coming soon — press Ctrl+C to exit.")
-
-
 def _load_app_config() -> AppConfig:
     """Load configuration with a small wrapper for future overrides."""
 
@@ -139,11 +125,7 @@ class PsqluiApp(App[None]):
             session_manager=self._session_manager,
         )
         self._query_pad = query_pad
-        main_column = Container(
-            Hero(),
-            query_pad,
-            id="main-column",
-        )
+        main_column = Container(query_pad, id="main-column")
         sidebar_children = self._pane_widgets or [Static("No plugin panes active", id="plugin-pane-empty")]
         sidebar = Vertical(*sidebar_children, id="plugin-sidebar")
         yield Horizontal(sidebar_panel, main_column, sidebar, id="content")

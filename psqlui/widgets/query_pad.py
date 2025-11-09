@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from typing import Callable, Mapping, Sequence
 
+from textual import events
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Container, Horizontal
+from textual.message import Message
 from textual.widgets import Button, DataTable, Input, Static
 
 from psqlui.query import QueryExecutionError, QueryResult
@@ -54,7 +56,10 @@ class QueryPad(Container):
     QueryPad .query-actions {
         margin-top: 1;
         align-horizontal: left;
-        gap: 1;
+    }
+
+    QueryPad .query-actions > * {
+        margin-right: 1;
     }
 
     QueryPad #query-results {
@@ -64,8 +69,8 @@ class QueryPad(Container):
     }
     """
 
-    BINDINGS = [
-        Binding("ctrl+enter", "run_query", "Run query", show=False),
+    BINDINGS = Container.BINDINGS + [
+        Binding("ctrl+enter", "run_query", "Run query", show=False, priority=True),
     ]
 
     def __init__(
@@ -93,9 +98,10 @@ class QueryPad(Container):
         """Compose the input + suggestion panes."""
 
         yield Static("Query Pad", classes="panel-title")
-        yield Input(
+        yield _QueryInput(
             placeholder="Type SQL, e.g. SELECT * FROM accounts WHERE id = 1;",
             id="query-input",
+            on_query=self._request_query_run,
         )
         yield Static("Suggestions appear here.", id="query-suggestions")
         yield Static("", id="query-analysis")
@@ -109,7 +115,7 @@ class QueryPad(Container):
         yield DataTable(id="query-results", zebra_stripes=True)
 
     async def on_mount(self) -> None:
-        self._input = self.query_one("#query-input", Input)
+        self._input = self.query_one("#query-input", _QueryInput)
         self._suggestions = self.query_one("#query-suggestions", Static)
         self._analysis_panel = self.query_one("#query-analysis", Static)
         self._metadata_panel = self.query_one("#metadata-status", Static)
@@ -133,6 +139,13 @@ class QueryPad(Container):
 
     async def action_run_query(self) -> None:
         await self._execute_current_query()
+
+    async def on_query_run_requested(self, event: "QueryRunRequested") -> None:
+        await self._execute_current_query()
+        event.stop()
+
+    def _request_query_run(self) -> None:
+        self.post_message(QueryRunRequested())
 
     async def _execute_current_query(self) -> None:
         if not self._session_manager or not self._input:
@@ -240,5 +253,39 @@ class QueryPad(Container):
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "run-query":
             await self._execute_current_query()
+
+    async def action_run_query(self) -> None:
+        await self._execute_current_query()
+
+
+class QueryRunRequested(Message):
+    """Message fired when the input requests a query run."""
+
+    pass
+
+
+class _QueryInput(Input):
+    """Input wrapper that detects Ctrl+Enter/newline chords."""
+
+    _TRIGGER_KEYS = {"ctrl+enter", "ctrl+j", "newline"}
+
+    def __init__(
+        self,
+        *args: object,
+        on_query: Callable[[], None] | None = None,
+        **kwargs: object,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self._on_query = on_query
+
+    def _on_key(self, event: events.Key) -> None:
+        key = event.key or ""
+        ctrl_enter = key == "enter" and bool(getattr(event, "control", False))
+        if (key in self._TRIGGER_KEYS or ctrl_enter) and self._on_query:
+            self._on_query()
+            event.stop()
+            return
+        super()._on_key(event)
+
 
 __all__ = ["QueryPad"]
