@@ -38,6 +38,11 @@ class NavigationSidebar(Container):
         margin-bottom: 2;
     }
 
+    NavigationSidebar .sidebar-hint {
+        color: $text-muted;
+        margin-bottom: 1;
+    }
+
     #profile-list {
         height: 6;
         border: round $primary 30%;
@@ -73,6 +78,7 @@ class NavigationSidebar(Container):
         self._profile_items = {item.profile_name: item for item in items}
         self._profile_list = _ProfileListView(*items, id="profile-list")
         yield self._profile_list
+        yield Static("Press m or Shift+F10 for actions", classes="sidebar-hint")
         self._context_menu = _ProfileContextMenu(self._handle_profile_action)
         yield self._context_menu
         self._profile_summary = Static("", id="profile-summary", classes="sidebar-section")

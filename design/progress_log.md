@@ -36,7 +36,7 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 25. Upgraded the simulated connection backend to emit health/latency info so the session manager and status bar can surface realistic connection telemetry.
 26. Rebuilt the navigation sidebar with a profile summary panel plus a draggable resize handle that persists width adjustments between runs.
 27. Added hover/drag affordances to the sidebar resize handle, introduced an inline profile context menu with switch/refresh actions, and taught the session manager (and tests) to refresh non-active profiles.
-28. Wired keyboard shortcuts ("m" / Shift+F10) into the profile list so the context menu is accessible without a mouse, including inline focus/escape handling so the popup behaves like a native terminal menu.
+28. Wired keyboard shortcuts ("m" / Shift+F10) into the profile list so the context menu is accessible without a mouse, including inline focus/escape handling so the popup behaves like a native terminal menu (with an on-screen hint beneath the profile list).
 
 ## Outstanding Tasks
 - Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.
