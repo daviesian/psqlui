@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
+import inspect
+import logging
+from typing import Callable
+
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical
 from textual.widget import Widget
@@ -10,6 +15,7 @@ from textual.widgets import Footer, Header, Static
 from .config import AppConfig, load_config, save_config
 from .plugins import (
     CommandCapability,
+    MetadataHookCapability,
     PaneCapability,
     PluginCommandProvider,
     PluginCommandRegistry,
@@ -18,7 +24,7 @@ from .plugins import (
     PluginToggleProvider,
 )
 from .providers import ProfileSwitchProvider, SessionRefreshProvider
-from .session import SessionManager
+from .session import SessionManager, SessionState
 from .sqlintel import SqlIntelService
 from .widgets import NavigationSidebar, QueryPad, SidebarPanel, StatusBar
 
@@ -26,6 +32,9 @@ try:
     from examples.plugins.hello_world import HelloWorldPlugin
 except ImportError:  # pragma: no cover - optional dev helper
     HelloWorldPlugin = None
+
+
+LOG = logging.getLogger(__name__)
 
 
 class Hero(Static):
@@ -99,13 +108,19 @@ class PsqluiApp(App[None]):
         self._session_manager = SessionManager(self._sql_service, config=self._config)
         if self._session_manager.state:
             self._config = self._config.with_active_profile(self._session_manager.state.profile.name)
+        self._session_unsubscribe: Callable[[], None] | None = None
+        self._last_session_state: SessionState | None = None
+        self._pending_notifications: list[tuple[str, str]] = []
         self._command_registry = PluginCommandRegistry()
         self._plugin_context: PluginContext | None = None
         self._nav_sidebar: NavigationSidebar | None = None
         self._query_pad: QueryPad | None = None
+        self._metadata_hooks: list[MetadataHookCapability] = []
         self._plugin_loader = self._create_plugin_loader()
         self._plugin_loader.load()
         self._register_plugin_commands()
+        self._metadata_hooks = self._collect_metadata_hooks()
+        self._install_session_listener()
         self._pane_widgets: list[Widget] = self._mount_plugin_panes()
 
     def compose(self) -> ComposeResult:
@@ -134,6 +149,9 @@ class PsqluiApp(App[None]):
         yield Horizontal(sidebar_panel, main_column, sidebar, id="content")
         yield StatusBar(self._session_manager)
         yield Footer()
+
+    async def on_mount(self) -> None:
+        self._flush_pending_notifications()
 
     def action_refresh(self) -> None:
         self._session_manager.refresh_active_profile()
@@ -214,6 +232,9 @@ class PsqluiApp(App[None]):
         )
 
     async def _shutdown(self) -> None:
+        if self._session_unsubscribe:
+            self._session_unsubscribe()
+            self._session_unsubscribe = None
         await self._plugin_loader.shutdown()
         await super()._shutdown()
 
@@ -226,6 +247,14 @@ class PsqluiApp(App[None]):
         if commands:
             self._command_registry.register_many(commands)
 
+    def _collect_metadata_hooks(self) -> list[MetadataHookCapability]:
+        hooks: list[MetadataHookCapability] = []
+        for plugin in self._plugin_loader.loaded:
+            for capability in plugin.capabilities:
+                if isinstance(capability, MetadataHookCapability) and capability.handler is not None:
+                    hooks.append(capability)
+        return hooks
+
     def _mount_plugin_panes(self) -> list[Widget]:
         panes: list[Widget] = []
         context = self._plugin_context or PluginContext(app=self, sql_intel=self._sql_service, config=self._config)
@@ -236,6 +265,76 @@ class PsqluiApp(App[None]):
                     if isinstance(widget, Widget):
                         panes.append(widget)
         return panes
+
+    def _install_session_listener(self) -> None:
+        if self._session_unsubscribe:
+            self._session_unsubscribe()
+        self._session_unsubscribe = self._session_manager.subscribe(self._handle_session_state)
+
+    def _handle_session_state(self, state: SessionState) -> None:
+        self._dispatch_metadata_hooks(state)
+        self._maybe_notify_state_change(state)
+        self._last_session_state = state
+
+    def _dispatch_metadata_hooks(self, state: SessionState) -> None:
+        for capability in self._metadata_hooks:
+            handler = capability.handler
+            if handler is None:
+                continue
+            try:
+                result = handler(state)
+            except Exception:
+                LOG.exception(
+                    "Metadata hook failed",
+                    extra={"hook": capability.name},
+                )
+                continue
+            self._maybe_schedule_hook(result)
+
+    def _maybe_schedule_hook(self, result: object) -> None:
+        if result is None:
+            return
+        if inspect.isawaitable(result):
+            try:
+                asyncio.ensure_future(result)  # type: ignore[arg-type]
+            except RuntimeError:
+                asyncio.run(result)  # type: ignore[arg-type]
+
+    def _maybe_notify_state_change(self, state: SessionState) -> None:
+        previous = self._last_session_state
+        if state.using_fallback and (not previous or not previous.using_fallback):
+            reason = ""
+            if state.last_error:
+                reason = f" ({state.last_error.splitlines()[0][:120]})"
+            self._safe_notify(
+                f"{state.profile.name}: Primary backend unavailable, using demo fallback{reason}.",
+                severity="warning",
+            )
+        elif previous and previous.using_fallback and not state.using_fallback:
+            self._safe_notify(
+                f"{state.profile.name}: Reconnected to primary backend.",
+                severity="information",
+            )
+
+    def _safe_notify(self, message: str, *, severity: str = "information") -> None:
+        if self.is_running:
+            try:
+                self.notify(message, severity=severity)
+            except Exception:
+                LOG.exception("Failed to display notification", extra={"message": message})
+        else:
+            self._pending_notifications.append((message, severity))
+
+    def _flush_pending_notifications(self) -> None:
+        if not self._pending_notifications:
+            return
+        pending = list(self._pending_notifications)
+        self._pending_notifications.clear()
+        for message, severity in pending:
+            try:
+                self.notify(message, severity=severity)
+            except Exception:
+                LOG.exception("Failed to display queued notification", extra={"message": message})
 
 
 def main() -> None:

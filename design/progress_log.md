@@ -6,7 +6,7 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
 - **Latest commit**: `b1e8bfc` — Ensure resize handle spans full height
-- **Uncommitted work**: Asyncpg-backed connection backend + fallback wiring (`psqlui/connections.py`, `psqlui/session.py`, tests, and this progress log entry).
+- **Uncommitted work**: Milestone 4 health wiring — session state now tracks backend/fallback status, UI + docs surface the info, plugin metadata hooks dispatch session events, and pytest coverage has been updated (`psqlui/session.py`, `psqlui/app.py`, widgets, docs, and tests).
 
 ## Completed So Far
 1. Created `design/` hub with product overview, architecture, UI flows, roadmap, and ops/quality strategy.
@@ -40,11 +40,12 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 29. Swapped in an `AsyncpgConnectionBackend` with a demo fallback, updated the session manager to select backends per profile, and expanded the connection/session test suites accordingly.
 30. Surfaced schema lists from the backend so the navigation sidebar shows `public` (and other schemas) even when no tables exist, including updated widget rendering + regression tests.
 31. Documented real connection profile setup (`docs/connections.md`), including DSN/password guidance and troubleshooting notes, and linked it from the README.
+32. Surfaced backend health + fallback state throughout the session manager/UI, added warning toasts, dispatched metadata hook capabilities for plugins, refreshed docs, and expanded pytest coverage.
 
 ## Outstanding Tasks
-- Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.
-- Propagate the real backend's health/error states into the UI + plugin APIs (status bar messaging, notifications, SQL intel hooks).
-- Track dev workflow docs + onboarding guides alongside code changes.
+- Continue Milestone 4 by plumbing real query execution + result panes so the data surface matches the design plan.
+- Expand the plugin samples/capabilities (exporters, SQL assistants) and expose richer metadata APIs once the loader stabilizes.
+- Track dev workflow docs + onboarding guides alongside code changes; keep documentation in sync with new UX affordances.
 
 ## How to Resume
 1. `cd /home/ipd21/psqlui`

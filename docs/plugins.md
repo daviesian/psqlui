@@ -17,13 +17,14 @@ class PluginDescriptor(Protocol):
     def register(self, ctx: PluginContext) -> Sequence[CapabilitySpec]: ...
     async def on_shutdown(self) -> None: ...
 ```
-- `PluginContext` currently exposes `app`, `sql_intel`, and `config` instances; treat them as read-only.
+- `PluginContext` currently exposes `app`, `sql_intel`, `metadata_cache` (the `SessionManager`), and `config` instances; treat them as read-only.
 - `CapabilitySpec` can be a `CommandCapability`, `PaneCapability`, `ExporterCapability`, `MetadataHookCapability`, or `SqlAssistCapability`.
 
 ## Capabilities Today
 - **Commands** feed the `PluginCommandRegistry` and show up in the Textual command palette automatically.
 - **Panes** return ready-to-mount Textual widgets. They render in the sidebar as soon as the plugin is loaded.
-- Additional capability types (exporters, metadata hooks, SQL assistants) share the same registration model even if the UI glue is landing later in Milestone 3.
+- **Metadata hooks** now fire after every session refresh/connection event. Handlers receive the latest `SessionState` so they can enrich caches or react to backend health changes (async handlers are supported).
+- Additional capability types (exporters, SQL assistants) share the same registration model even if the UI glue is landing later.
 
 ## Configuration & Enablement
 - User preferences live in `~/.config/psqlui/config.toml`.

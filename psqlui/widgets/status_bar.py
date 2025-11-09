@@ -40,9 +40,19 @@ class StatusBar(Static):
         status = state.status or ("Connected" if state.connected else "Idle")
         latency = f"{state.latency_ms} ms" if state.latency_ms is not None else "—"
         refreshed = state.refreshed_at.astimezone().strftime("%H:%M:%S")
-        self.update(
-            f"Profile: {state.profile.name} | Schemas: {schemas} | Tables: {tables} | Status: {status} ({latency}) | Refreshed: {refreshed}"
-        )
+        backend = state.backend_label or ("Demo fallback" if state.using_fallback else "Primary backend")
+        parts = [
+            f"Profile: {state.profile.name}",
+            f"Backend: {backend}",
+            f"Schemas: {schemas}",
+            f"Tables: {tables}",
+            f"Status: {status} ({latency})",
+            f"Refreshed: {refreshed}",
+        ]
+        if state.last_error:
+            reason = state.last_error.splitlines()[0][:80]
+            parts.append(f"Error: {reason}")
+        self.update(" | ".join(parts))
 
 
 __all__ = ["StatusBar"]

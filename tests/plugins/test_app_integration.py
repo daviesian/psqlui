@@ -10,6 +10,8 @@ import pytest
 from examples.plugins.hello_world import HelloWorldPlugin
 from psqlui.app import PsqluiApp
 from psqlui.config import AppConfig, ConnectionProfileConfig
+from psqlui.connections import ConnectionBackendError
+from psqlui.plugins import MetadataHookCapability
 from psqlui.plugins.providers import PluginCommandProvider, PluginToggleProvider
 from psqlui.providers import ProfileSwitchProvider, SessionRefreshProvider
 
@@ -204,6 +206,51 @@ async def test_plugin_command_provider_surfaces_hits(monkeypatch: pytest.MonkeyP
         assert descriptor.executions == 1
     finally:
         await app.plugin_loader.shutdown()
+
+
+@pytest.mark.anyio
+async def test_metadata_hooks_receive_session_updates(monkeypatch: pytest.MonkeyPatch) -> None:
+    hook_entry = metadata.EntryPoint(
+        name="hook-plugin",
+        value="tests.plugins.test_app_integration:_HookPlugin",
+        group="psqlui.plugins",
+    )
+    monkeypatch.setattr(metadata, "entry_points", lambda: metadata.EntryPoints((hook_entry,)))
+    config = AppConfig(plugins={"hook-plugin": True})
+    monkeypatch.setattr("psqlui.app._load_app_config", lambda: config)
+
+    app = PsqluiApp()
+
+    try:
+        manager = app.session_manager
+        manager.refresh_active_profile()
+        assert app.plugin_loader.loaded
+        descriptor = app.plugin_loader.loaded[0].descriptor
+        assert getattr(descriptor, "events")
+        assert descriptor.events[-1].profile.name == manager.state.profile.name  # type: ignore[union-attr]
+    finally:
+        await app.plugin_loader.shutdown()
+
+
+@pytest.mark.anyio
+async def test_fallback_triggers_notification(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("psqlui.session.AsyncpgConnectionBackend", _AlwaysFailBackend)
+    config = AppConfig()
+    monkeypatch.setattr("psqlui.app._load_app_config", lambda: config)
+
+    app = PsqluiApp()
+
+    try:
+        state = app.session_manager.state
+        assert state is not None and state.using_fallback is True
+        assert app._pending_notifications  # type: ignore[attr-defined]
+        message, severity = app._pending_notifications[0]
+        assert severity == "warning"
+        assert state.profile.name in message
+    finally:
+        await app.plugin_loader.shutdown()
+
+
 class _DummyScreen:
     """Minimal stub so providers can reference an app without a running screen stack."""
 
@@ -244,3 +291,49 @@ async def test_plugin_toggle_provider_creates_commands(tmp_path: Path, monkeypat
         assert config_path.exists()
     finally:
         await app.plugin_loader.shutdown()
+
+
+class _HookPlugin:
+    """Test plugin emitting metadata hook events."""
+
+    name = "hook-plugin"
+    version = "0.0.1"
+    min_core = "0.1.0"
+
+    def __init__(self) -> None:
+        self.events: list[object] = []
+
+    def register(self, ctx):  # type: ignore[override]
+        def _handle(state):
+            self.events.append(state)
+
+        return [
+            MetadataHookCapability(
+                name="hook-plugin.metadata",
+                handler=_handle,
+            )
+        ]
+
+    async def on_shutdown(self) -> None:  # pragma: no cover - nothing to clean
+        return None
+
+
+class _AlwaysFailBackend:
+    """Backend stub that always raises to force fallback path."""
+
+    def __init__(self) -> None:
+        self._listeners: set[object] = set()
+
+    def connect(self, profile):  # type: ignore[no-untyped-def]
+        raise ConnectionBackendError("connect failed")
+
+    def refresh(self, profile):  # type: ignore[no-untyped-def]
+        raise ConnectionBackendError("refresh failed")
+
+    def subscribe(self, listener):  # type: ignore[no-untyped-def]
+        self._listeners.add(listener)
+
+        def _unsubscribe() -> None:
+            self._listeners.discard(listener)
+
+        return _unsubscribe

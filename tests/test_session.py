@@ -30,6 +30,9 @@ def test_session_manager_connects_first_profile_by_default() -> None:
     assert manager.state.refreshed_at is not None
     assert manager.state.status
     assert manager.state.latency_ms is not None
+    assert manager.state.backend_label == "Primary backend"
+    assert manager.state.using_fallback is False
+    assert manager.state.last_error is None
     assert service.last_metadata == dict(manager.state.metadata)
 
 
@@ -155,5 +158,42 @@ def test_session_manager_falls_back_when_primary_backend_fails() -> None:
     assert manager.state is not None
     assert manager.state.metadata["public.accounts"] == ("id",)
     assert "public" in manager.state.schemas
+    assert manager.state.using_fallback is True
+    assert manager.state.backend_label == "Demo fallback"
+    assert manager.state.last_error and "boom" in manager.state.last_error
     manager.refresh_active_profile()
     assert manager.state.metadata["public.accounts"] == ("id", "email")
+    assert manager.state.using_fallback is True
+    assert manager.state.last_error and "boom" in manager.state.last_error
+
+
+def test_refresh_failure_switches_to_demo_and_records_error() -> None:
+    class _FlakyBackend(DemoConnectionBackend):
+        def refresh(self, profile):  # type: ignore[override]
+            raise ConnectionBackendError("refresh failed")
+
+    profiles = [ConnectionProfileConfig(name="Local", metadata_key="demo")]
+    config = AppConfig(profiles=profiles, active_profile="Local")
+    service = _SqlIntelStub()
+    primary = _FlakyBackend(
+        {
+            "demo": (
+                {"public.accounts": ("id",)},
+            )
+        }
+    )
+    fallback = DemoConnectionBackend(
+        {
+            "demo": (
+                {"public.accounts": ("id", "email", "status")},
+            )
+        }
+    )
+    manager = SessionManager(service, config=config, backend=primary, fallback_backend=fallback)
+
+    assert manager.state is not None
+    assert manager.state.using_fallback is False
+    manager.refresh_active_profile()
+    assert manager.state.using_fallback is True
+    assert manager.state.metadata["public.accounts"] == ("id", "email", "status")
+    assert manager.state.last_error and "refresh failed" in manager.state.last_error

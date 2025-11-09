@@ -40,9 +40,9 @@ If you use this style, `psqlui` will prompt `asyncpg` to read the password from 
 
 - Press `Ctrl+R` or run `Refresh active profile metadata` from the command palette to pull the latest schema snapshot.
 - The left sidebar now lists every schema we discover (even empty ones, such as `public` on a brand-new database). Schemas with no tables show a `No tables yet` placeholder.
-- The status bar displays the connection status plus round-trip latency for each refresh.
+- The status bar displays the connection status plus round-trip latency for each refresh. It also highlights whether you are talking to the primary backend or the built-in demo fallback and shows the most recent error message when something goes wrong.
 
-If a connection attempt fails (bad credentials, network issues, etc.), the app falls back to the built-in demo dataset so the UI stays usable. You’ll still see a notification in a future milestone; in the meantime check the terminal logs for details.
+If a connection attempt fails (bad credentials, network issues, etc.), the app falls back to the built-in demo dataset so the UI stays usable. A warning toast and the sidebar summary both call out that fallback mode is active and show the most recent error so you know what to fix before retrying the profile.
 
 ## Troubleshooting
 

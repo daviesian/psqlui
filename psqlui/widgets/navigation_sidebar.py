@@ -166,18 +166,21 @@ class NavigationSidebar(Container):
         host = state.profile.host or "localhost"
         database = state.profile.database or state.profile.name
         latency = f"{state.latency_ms} ms" if state.latency_ms is not None else "—"
-        schema_count = len(state.metadata)
-        table_count = sum(len(columns) for columns in state.metadata.values())
-        summary = "\n".join(
-            [
-                f"Profile: {state.profile.name}",
-                f"Host: {host}",
-                f"Database: {database}",
-                f"Schemas: {schema_count} · Tables: {table_count}",
-                f"Status: {state.status} ({latency})",
-            ]
-        )
-        self._profile_summary.update(summary)
+        schema_count = len(state.schemas or ())
+        table_count = len(state.metadata)
+        backend = state.backend_label or ("Demo fallback" if state.using_fallback else "Primary backend")
+        lines = [
+            f"Profile: {state.profile.name}",
+            f"Host: {host}",
+            f"Database: {database}",
+            f"Schemas: {schema_count} · Tables: {table_count}",
+            f"Status: {state.status} ({latency})",
+            f"Backend: {backend}",
+        ]
+        if state.using_fallback and state.last_error:
+            reason = state.last_error.splitlines()[0][:120]
+            lines.append(f"Fallback reason: {reason}")
+        self._profile_summary.update("\n".join(lines))
 
     def _report_width(self, width: int) -> None:
         remember = getattr(self.app, "remember_sidebar_width", None)

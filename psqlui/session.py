@@ -46,6 +46,9 @@ class SessionState:
     refreshed_at: datetime
     status: str = "Connected"
     latency_ms: int | None = None
+    backend_label: str = "Primary backend"
+    using_fallback: bool = False
+    last_error: str | None = None
 
 
 class SessionManager:
@@ -112,9 +115,11 @@ class SessionManager:
         profile = self._profile_by_name(name)
         event: ConnectionEvent
         backend = self._backend
+        error_message: str | None = None
         try:
             event = backend.connect(profile)
-        except ConnectionBackendError:
+        except ConnectionBackendError as exc:
+            error_message = str(exc)
             backend = self._fallback_backend
             if backend is None:
                 raise
@@ -127,6 +132,9 @@ class SessionManager:
             refreshed_at=event.connected_at,
             status=event.status,
             latency_ms=event.latency_ms,
+            backend_label=self._label_for_backend(backend),
+            using_fallback=self._is_fallback(backend),
+            last_error=error_message,
         )
         return self._state
 
@@ -138,8 +146,8 @@ class SessionManager:
         backend = self._active_backends.get(self._state.profile.name, self._backend)
         try:
             backend.refresh(self._state.profile)
-        except ConnectionBackendError:
-            self._fallback_to_demo(self._state.profile)
+        except ConnectionBackendError as exc:
+            self._fallback_to_demo(self._state.profile, error_message=str(exc))
 
     def refresh_profile(self, name: str) -> None:
         """Refresh metadata for the requested profile, switching if needed."""
@@ -168,7 +176,7 @@ class SessionManager:
                 return profile
         raise ValueError(f"Profile '{name}' not found.")
 
-    def _fallback_to_demo(self, profile: ConnectionProfile) -> None:
+    def _fallback_to_demo(self, profile: ConnectionProfile, error_message: str | None = None) -> None:
         event = self._fallback_backend.connect(profile)
         self._active_backends[profile.name] = self._fallback_backend
         self._update_state(
@@ -178,6 +186,9 @@ class SessionManager:
             refreshed_at=event.connected_at,
             status=event.status,
             latency_ms=event.latency_ms,
+            backend_label=self._label_for_backend(self._fallback_backend),
+            using_fallback=True,
+            last_error=error_message,
         )
 
     def _from_config(self, profile: ConnectionProfileConfig) -> ConnectionProfile:
@@ -209,8 +220,14 @@ class SessionManager:
         refreshed_at: datetime | None = None,
         status: str = "Connected",
         latency_ms: int | None = None,
+        backend_label: str | None = None,
+        using_fallback: bool | None = None,
+        last_error: str | None = None,
     ) -> None:
         self._sql_intel.update_metadata(metadata)
+        fallback_state = using_fallback if using_fallback is not None else (self._state.using_fallback if self._state else False)
+        if last_error is None and fallback_state and self._state:
+            last_error = self._state.last_error
         self._state = SessionState(
             profile=profile,
             connected=True,
@@ -219,6 +236,9 @@ class SessionManager:
             refreshed_at=refreshed_at or datetime.now(tz=timezone.utc),
             status=status,
             latency_ms=latency_ms,
+            backend_label=backend_label or self._label_for_backend(self._backend),
+            using_fallback=fallback_state,
+            last_error=last_error,
         )
         self._notify()
 
@@ -242,6 +262,9 @@ class SessionManager:
             refreshed_at=event.connected_at,
             status=event.status,
             latency_ms=event.latency_ms,
+            backend_label=self._label_for_backend(source),
+            using_fallback=self._is_fallback(source),
+            last_error=None if not self._is_fallback(source) else self._state.last_error,
         )
 
     def _wrap_backend_listener(self, backend: ConnectionBackend) -> MetadataListener:
@@ -266,6 +289,14 @@ class SessionManager:
             return
         for listener in tuple(self._listeners):
             listener(self._state)
+
+    def _label_for_backend(self, backend: ConnectionBackend) -> str:
+        if self._is_fallback(backend):
+            return "Demo fallback"
+        return "Primary backend"
+
+    def _is_fallback(self, backend: ConnectionBackend | None) -> bool:
+        return backend is not None and backend is self._fallback_backend
 
 
 __all__ = [
