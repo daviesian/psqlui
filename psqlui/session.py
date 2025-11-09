@@ -1,4 +1,4 @@
-"""Connection/session manager wiring demo metadata into the UI."""
+"""Connection/session manager wiring metadata into the UI."""
 
 from __future__ import annotations
 
@@ -7,7 +7,15 @@ from datetime import datetime, timezone
 from typing import Callable, Mapping
 
 from .config import AppConfig, ConnectionProfileConfig
-from .connections import ConnectionEvent, DemoConnectionBackend, MetadataSnapshot
+from .connections import (
+    AsyncpgConnectionBackend,
+    ConnectionBackend,
+    ConnectionBackendError,
+    ConnectionEvent,
+    DemoConnectionBackend,
+    MetadataListener,
+    MetadataSnapshot,
+)
 from .sqlintel import SqlIntelService
 
 SessionListener = Callable[["SessionState"], None]
@@ -34,31 +42,41 @@ class SessionState:
     profile: ConnectionProfile
     connected: bool
     metadata: Mapping[str, tuple[str, ...]]
+    schemas: tuple[str, ...]
     refreshed_at: datetime
     status: str = "Connected"
     latency_ms: int | None = None
 
 
 class SessionManager:
-    """Lightweight session orchestrator for the Textual demo."""
+    """Lightweight session orchestrator for the Textual app."""
 
     def __init__(
         self,
         sql_intel: SqlIntelService,
         *,
         config: AppConfig,
-        backend: DemoConnectionBackend | None = None,
+        backend: ConnectionBackend | None = None,
+        fallback_backend: ConnectionBackend | None = None,
     ) -> None:
         self._sql_intel = sql_intel
         self._config = config
         self._profiles = tuple(self._from_config(entry) for entry in config.profiles)
         self._listeners: set[SessionListener] = set()
         self._state: SessionState | None = None
-        self._backend = backend or DemoConnectionBackend()
-        self._backend_unsubscribe = self._backend.subscribe(self._handle_backend_event)
+        self._backend = backend or AsyncpgConnectionBackend()
+        self._fallback_backend = fallback_backend or DemoConnectionBackend()
+        self._active_backends: dict[str, ConnectionBackend] = {}
+        self._backend_listener = self._wrap_backend_listener(self._backend)
+        self._backend_unsubscribe = self._backend.subscribe(self._backend_listener)
+        self._fallback_listener = self._wrap_backend_listener(self._fallback_backend)
+        self._fallback_unsubscribe = self._fallback_backend.subscribe(self._fallback_listener)
         active_name = config.active_profile or (self._profiles[0].name if self._profiles else None)
         if active_name and self._profiles:
-            self.connect(active_name)
+            try:
+                self.connect(active_name)
+            except ConnectionBackendError:
+                self._state = None
 
     @property
     def profiles(self) -> tuple[ConnectionProfile, ...]:
@@ -92,10 +110,20 @@ class SessionManager:
         """Activate the requested profile."""
 
         profile = self._profile_by_name(name)
-        event = self._backend.connect(profile)
+        event: ConnectionEvent
+        backend = self._backend
+        try:
+            event = backend.connect(profile)
+        except ConnectionBackendError:
+            backend = self._fallback_backend
+            if backend is None:
+                raise
+            event = backend.connect(profile)
+        self._active_backends[profile.name] = backend
         self._update_state(
             profile,
             event.metadata,
+            schemas=event.schemas,
             refreshed_at=event.connected_at,
             status=event.status,
             latency_ms=event.latency_ms,
@@ -107,7 +135,11 @@ class SessionManager:
 
         if not self._state:
             return
-        self._backend.refresh(self._state.profile)
+        backend = self._active_backends.get(self._state.profile.name, self._backend)
+        try:
+            backend.refresh(self._state.profile)
+        except ConnectionBackendError:
+            self._fallback_to_demo(self._state.profile)
 
     def refresh_profile(self, name: str) -> None:
         """Refresh metadata for the requested profile, switching if needed."""
@@ -136,6 +168,18 @@ class SessionManager:
                 return profile
         raise ValueError(f"Profile '{name}' not found.")
 
+    def _fallback_to_demo(self, profile: ConnectionProfile) -> None:
+        event = self._fallback_backend.connect(profile)
+        self._active_backends[profile.name] = self._fallback_backend
+        self._update_state(
+            profile,
+            event.metadata,
+            schemas=event.schemas,
+            refreshed_at=event.connected_at,
+            status=event.status,
+            latency_ms=event.latency_ms,
+        )
+
     def _from_config(self, profile: ConnectionProfileConfig) -> ConnectionProfile:
         metadata = (
             {
@@ -161,6 +205,7 @@ class SessionManager:
         profile: ConnectionProfile,
         metadata: MetadataSnapshot,
         *,
+        schemas: tuple[str, ...] | None = None,
         refreshed_at: datetime | None = None,
         status: str = "Connected",
         latency_ms: int | None = None,
@@ -170,24 +215,51 @@ class SessionManager:
             profile=profile,
             connected=True,
             metadata=metadata,
+            schemas=schemas or self._infer_schemas(metadata),
             refreshed_at=refreshed_at or datetime.now(tz=timezone.utc),
             status=status,
             latency_ms=latency_ms,
         )
         self._notify()
 
-    def _handle_backend_event(self, profile: ConnectionProfile, event: ConnectionEvent) -> None:
+    def _handle_backend_event(
+        self,
+        profile: ConnectionProfile,
+        event: ConnectionEvent,
+        source: ConnectionBackend,
+    ) -> None:
         if not self._state:
             return
         if profile.name != self._state.profile.name:
             return
+        active = self._active_backends.get(profile.name, self._backend)
+        if source is not active:
+            return
         self._update_state(
             profile,
             event.metadata,
+            schemas=event.schemas,
             refreshed_at=event.connected_at,
             status=event.status,
             latency_ms=event.latency_ms,
         )
+
+    def _wrap_backend_listener(self, backend: ConnectionBackend) -> MetadataListener:
+        def _callback(profile: ConnectionProfile, event: ConnectionEvent) -> None:
+            self._handle_backend_event(profile, event, backend)
+
+        return _callback
+
+    @staticmethod
+    def _infer_schemas(metadata: Mapping[str, tuple[str, ...]]) -> tuple[str, ...]:
+        schemas: set[str] = set()
+        for table in metadata:
+            if "." in table:
+                schema = table.split(".", 1)[0]
+            else:
+                schema = "public"
+            schemas.add(schema)
+        return tuple(sorted(schemas)) or ("public",)
 
     def _notify(self) -> None:
         if not self._state:

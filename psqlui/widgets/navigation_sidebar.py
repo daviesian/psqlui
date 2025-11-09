@@ -122,9 +122,6 @@ class NavigationSidebar(Container):
         if not self._schemas:
             return
         metadata = state.metadata
-        if not metadata:
-            self._schemas.update("No schemas loaded.")
-            return
         buckets: dict[str, list[str]] = defaultdict(list)
         for table in sorted(metadata):
             if "." in table:
@@ -132,10 +129,18 @@ class NavigationSidebar(Container):
             else:
                 schema, rel = "public", table
             buckets[schema].append(rel)
+        schemas = state.schemas or tuple(sorted(buckets))
+        if not schemas:
+            self._schemas.update("No schemas loaded.")
+            return
         lines: list[str] = []
-        for schema in sorted(buckets):
+        for schema in schemas:
             lines.append(schema)
-            for rel in buckets[schema][:5]:
+            tables = buckets.get(schema, [])
+            if not tables:
+                lines.append("  - No tables yet")
+                continue
+            for rel in tables[:5]:
                 lines.append(f"  - {rel}")
         self._schemas.update("\n".join(lines))
 

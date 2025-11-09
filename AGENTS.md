@@ -38,4 +38,4 @@ Reference playbook so any LLM agent can resume work on `psqlui` without re-readi
 - Before handing back, ensure `git status -sb` is clean (or describe remaining changes if intentionally uncommitted).
 - Treat every intermediate stopping point as a hand-off: either land a commit for the work so far or explain explicitly why committing isn't possible.
 - In the final message, summarize changes, reference key files with `path:line`, mention tests run, and suggest logical next steps.
-- Always tell the user what new things (if any) they should see or try in the app when summarizing your changes.
+- **Mandatory UX hand-off**: Always spell out what the user should try or expect after your changes. If there is truly nothing new to exercise, explicitly say so and explain why. Treat missing try-this guidance as a blocker—rewrite the summary before handing back.

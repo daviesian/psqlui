@@ -6,7 +6,7 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
 - **Latest commit**: `b1e8bfc` — Ensure resize handle spans full height
-- **Uncommitted work**: Inline profile picker context menu + sidebar handle affordances (widgets/session/tests/progress log updates) and this progress log entry.
+- **Uncommitted work**: Asyncpg-backed connection backend + fallback wiring (`psqlui/connections.py`, `psqlui/session.py`, tests, and this progress log entry).
 
 ## Completed So Far
 1. Created `design/` hub with product overview, architecture, UI flows, roadmap, and ops/quality strategy.
@@ -37,17 +37,18 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 26. Rebuilt the navigation sidebar with a profile summary panel plus a draggable resize handle that persists width adjustments between runs.
 27. Added hover/drag affordances to the sidebar resize handle, introduced an inline profile context menu with switch/refresh actions, and taught the session manager (and tests) to refresh non-active profiles.
 28. Wired keyboard shortcuts ("m" / Shift+F10) into the profile list so the context menu is accessible without a mouse, including inline focus/escape handling so the popup behaves like a native terminal menu (with an on-screen hint beneath the profile list).
+29. Swapped in an `AsyncpgConnectionBackend` with a demo fallback, updated the session manager to select backends per profile, and expanded the connection/session test suites accordingly.
+30. Surfaced schema lists from the backend so the navigation sidebar shows `public` (and other schemas) even when no tables exist, including updated widget rendering + regression tests.
 
 ## Outstanding Tasks
 - Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.
-- Finish Milestone 4 wiring by replacing the demo metadata stub with the real connection/session cache once that service lands.
-- Connect SQL intel + plugins to the new connection backend events (propagate refresh/errors) as we swap in a real driver.
+- Propagate the real backend's health/error states into the UI + plugin APIs (status bar messaging, notifications, SQL intel hooks).
 - Track dev workflow docs + onboarding guides alongside code changes.
 
 ## How to Resume
 1. `cd /home/ipd21/psqlui`
-2. `git status` (expect config/app/widget/test updates and this log).
-3. Continue editing or start a commit capturing the layout persistence work once ready.
+2. `git status` (expect updates under `psqlui/connections.py`, `psqlui/session.py`, `tests/test_connections.py`, `tests/test_session.py`, and this log).
+3. Continue polishing the real backend integration (surface errors/health in-app, update docs/tests) before committing.
 
 Keep this file updated whenever major decisions land so future contexts know the state of play.
 ## Update Ritual

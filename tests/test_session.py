@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from psqlui.config import AppConfig, ConnectionProfileConfig
-from psqlui.connections import DemoConnectionBackend
+from psqlui.connections import ConnectionBackendError, DemoConnectionBackend
 from psqlui.session import SessionManager
 
 
@@ -26,6 +26,7 @@ def test_session_manager_connects_first_profile_by_default() -> None:
     assert manager.state is not None
     assert manager.state.connected is True
     assert manager.state.metadata
+    assert manager.state.schemas
     assert manager.state.refreshed_at is not None
     assert manager.state.status
     assert manager.state.latency_ms is not None
@@ -54,6 +55,7 @@ def test_session_manager_switches_profiles_and_notifies_listeners() -> None:
     assert seen[-1] == "Replica"
     assert manager.state is not None and manager.state.profile.name == "Replica"
     assert service.last_metadata == dict(manager.state.metadata)
+    assert "analytics" in manager.state.schemas
     assert timestamps[-1] >= timestamps[0]
     assert manager.state.latency_ms is not None
     unsubscribe()
@@ -122,3 +124,36 @@ def test_refresh_profile_switches_and_refreshes_non_active_profile() -> None:
     assert manager.state.profile.name == "Replica"
     assert manager.state.metadata["analytics.events"] == ("id", "payload")
     assert service.last_metadata == dict(manager.state.metadata)
+    assert "analytics" in manager.state.schemas
+
+
+def test_session_manager_falls_back_when_primary_backend_fails() -> None:
+    class _FailingBackend(DemoConnectionBackend):
+        def connect(self, profile):  # type: ignore[override]
+            raise ConnectionBackendError("boom")
+
+        def refresh(self, profile):  # type: ignore[override]
+            raise ConnectionBackendError("boom")
+
+    profiles = [ConnectionProfileConfig(name="Local", metadata_key="demo")]
+    config = AppConfig(profiles=profiles, active_profile="Local")
+    service = _SqlIntelStub()
+    manager = SessionManager(
+        service,
+        config=config,
+        backend=_FailingBackend(),
+        fallback_backend=DemoConnectionBackend(
+            {
+                "demo": (
+                    {"public.accounts": ("id",)},
+                    {"public.accounts": ("id", "email")},
+                )
+            }
+        ),
+    )
+
+    assert manager.state is not None
+    assert manager.state.metadata["public.accounts"] == ("id",)
+    assert "public" in manager.state.schemas
+    manager.refresh_active_profile()
+    assert manager.state.metadata["public.accounts"] == ("id", "email")
