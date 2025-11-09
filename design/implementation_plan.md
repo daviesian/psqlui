@@ -26,6 +26,8 @@ Short-term milestones to turn the design docs into a runnable TUI.
 - Flesh out Textual layout (sidebar, query pad, status bar).
 - Build connection/session manager, integrate with config profiles.
 - Display schemas/tables pulled via metadata cache (no editing yet).
+- Surface backend health/errors in the UI (status bar + notifications) and clearly indicate when the demo fallback is active.
+- Publish backend events to SQL intel + plugin hooks so extensions can react to refresh/failure signals.
 
 ## Tracking & Next Steps
 - Update this file + `design/progress_log.md` after each milestone.

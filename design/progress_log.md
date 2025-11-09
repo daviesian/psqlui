@@ -39,6 +39,7 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 28. Wired keyboard shortcuts ("m" / Shift+F10) into the profile list so the context menu is accessible without a mouse, including inline focus/escape handling so the popup behaves like a native terminal menu (with an on-screen hint beneath the profile list).
 29. Swapped in an `AsyncpgConnectionBackend` with a demo fallback, updated the session manager to select backends per profile, and expanded the connection/session test suites accordingly.
 30. Surfaced schema lists from the backend so the navigation sidebar shows `public` (and other schemas) even when no tables exist, including updated widget rendering + regression tests.
+31. Documented real connection profile setup (`docs/connections.md`), including DSN/password guidance and troubleshooting notes, and linked it from the README.
 
 ## Outstanding Tasks
 - Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.

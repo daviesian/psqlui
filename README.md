@@ -4,6 +4,7 @@ Cross-platform terminal UI for PostgreSQL built with Textual. See the `design/` 
 
 Additional docs:
 - `docs/plugins.md` — quickstart for building plugins.
+- `docs/connections.md` — configuring real profiles + refreshing metadata.
 
 ## Getting Started
 
