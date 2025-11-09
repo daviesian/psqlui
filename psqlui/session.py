@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Callable, Mapping
 
 from .config import AppConfig, ConnectionProfileConfig
+from .models import ConnectionProfile, MetadataSnapshot
 from .connections import (
     AsyncpgConnectionBackend,
     ConnectionBackend,
@@ -14,25 +15,17 @@ from .connections import (
     ConnectionEvent,
     DemoConnectionBackend,
     MetadataListener,
-    MetadataSnapshot,
+)
+from .query import (
+    AsyncpgQueryExecutor,
+    DemoQueryExecutor as DemoQueryRunner,
+    QueryExecutionError,
+    QueryExecutor,
+    QueryResult,
 )
 from .sqlintel import SqlIntelService
 
 SessionListener = Callable[["SessionState"], None]
-
-
-@dataclass(frozen=True, slots=True)
-class ConnectionProfile:
-    """Runtime representation of a connection profile."""
-
-    name: str
-    dsn: str | None = None
-    host: str | None = None
-    port: int | None = None
-    database: str | None = None
-    user: str | None = None
-    metadata_key: str | None = None
-    metadata: MetadataSnapshot | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +54,8 @@ class SessionManager:
         config: AppConfig,
         backend: ConnectionBackend | None = None,
         fallback_backend: ConnectionBackend | None = None,
+        query_executor: QueryExecutor | None = None,
+        fallback_query_executor: QueryExecutor | None = None,
     ) -> None:
         self._sql_intel = sql_intel
         self._config = config
@@ -69,6 +64,8 @@ class SessionManager:
         self._state: SessionState | None = None
         self._backend = backend or AsyncpgConnectionBackend()
         self._fallback_backend = fallback_backend or DemoConnectionBackend()
+        self._query_executor = query_executor or AsyncpgQueryExecutor()
+        self._fallback_query_executor = fallback_query_executor or DemoQueryRunner()
         self._active_backends: dict[str, ConnectionBackend] = {}
         self._backend_listener = self._wrap_backend_listener(self._backend)
         self._backend_unsubscribe = self._backend.subscribe(self._backend_listener)
@@ -175,6 +172,21 @@ class SessionManager:
             if profile.name == name:
                 return profile
         raise ValueError(f"Profile '{name}' not found.")
+
+    async def run_query(self, sql: str) -> QueryResult:
+        """Execute SQL against the current profile."""
+
+        if not self._state:
+            raise QueryExecutionError("No active profile selected.")
+        executor = self._query_executor
+        if self._state.using_fallback:
+            executor = self._fallback_query_executor
+        try:
+            return await executor.execute(self._state.profile, sql)
+        except QueryExecutionError:
+            raise
+        except Exception as exc:  # pragma: no cover - defensive
+            raise QueryExecutionError(str(exc)) from exc
 
     def _fallback_to_demo(self, profile: ConnectionProfile, error_message: str | None = None) -> None:
         event = self._fallback_backend.connect(profile)

@@ -41,16 +41,17 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 30. Surfaced schema lists from the backend so the navigation sidebar shows `public` (and other schemas) even when no tables exist, including updated widget rendering + regression tests.
 31. Documented real connection profile setup (`docs/connections.md`), including DSN/password guidance and troubleshooting notes, and linked it from the README.
 32. Surfaced backend health + fallback state throughout the session manager/UI, added warning toasts, dispatched metadata hook capabilities for plugins, refreshed docs, and expanded pytest coverage.
+33. Wired the query pad into real execution: added async query executors (asyncpg + demo fallback), session-level `run_query`, a result grid with status badges, docs updates, and regression tests for the new runners.
 
 ## Outstanding Tasks
-- Continue Milestone 4 by plumbing real query execution + result panes so the data surface matches the design plan.
 - Expand the plugin samples/capabilities (exporters, SQL assistants) and expose richer metadata APIs once the loader stabilizes.
+- Flesh out the result grid (pagination, copy/export actions) and hook it into future plugin exporters.
 - Track dev workflow docs + onboarding guides alongside code changes; keep documentation in sync with new UX affordances.
 
 ## How to Resume
 1. `cd /home/ipd21/psqlui`
-2. `git status` (expect updates under `psqlui/connections.py`, `psqlui/session.py`, `tests/test_connections.py`, `tests/test_session.py`, and this log).
-3. Continue polishing the real backend integration (surface errors/health in-app, update docs/tests) before committing.
+2. `git status` (expect updates under `psqlui/query.py`, `psqlui/session.py`, widgets, docs, and tests).
+3. Continue polishing the backend experience (result pagination, exporters, richer notifications) before committing.
 
 Keep this file updated whenever major decisions land so future contexts know the state of play.
 ## Update Ritual

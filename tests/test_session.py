@@ -4,9 +4,17 @@ from __future__ import annotations
 
 from datetime import datetime
 
+import pytest
+
 from psqlui.config import AppConfig, ConnectionProfileConfig
 from psqlui.connections import ConnectionBackendError, DemoConnectionBackend
+from psqlui.query import QueryResult
 from psqlui.session import SessionManager
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    return "asyncio"
 
 
 class _SqlIntelStub:
@@ -197,3 +205,59 @@ def test_refresh_failure_switches_to_demo_and_records_error() -> None:
     assert manager.state.using_fallback is True
     assert manager.state.metadata["public.accounts"] == ("id", "email", "status")
     assert manager.state.last_error and "refresh failed" in manager.state.last_error
+
+
+@pytest.mark.anyio
+async def test_run_query_uses_primary_executor() -> None:
+    config = AppConfig(profiles=[ConnectionProfileConfig(name="Local", metadata_key="demo")], active_profile="Local")
+    service = _SqlIntelStub()
+    primary_executor = _QueryStub()
+    fallback_executor = _QueryStub(status="Fallback")
+    manager = SessionManager(
+        service,
+        config=config,
+        backend=DemoConnectionBackend(),
+        query_executor=primary_executor,
+        fallback_query_executor=fallback_executor,
+    )
+
+    result = await manager.run_query("SELECT 1")
+
+    assert result.status == "OK"
+    assert primary_executor.calls == ["SELECT 1"]
+    assert not fallback_executor.calls
+
+
+@pytest.mark.anyio
+async def test_run_query_uses_fallback_executor_when_demo_active() -> None:
+    class _FailingBackend(DemoConnectionBackend):
+        def connect(self, profile):  # type: ignore[override]
+            raise ConnectionBackendError("down")
+
+    config = AppConfig(profiles=[ConnectionProfileConfig(name="Local", metadata_key="demo")], active_profile="Local")
+    service = _SqlIntelStub()
+    primary_executor = _QueryStub()
+    fallback_executor = _QueryStub(status="Fallback demo")
+    manager = SessionManager(
+        service,
+        config=config,
+        backend=_FailingBackend(),
+        fallback_backend=DemoConnectionBackend(),
+        query_executor=primary_executor,
+        fallback_query_executor=fallback_executor,
+    )
+
+    assert manager.state is not None and manager.state.using_fallback is True
+    result = await manager.run_query("SELECT * FROM demo")
+
+    assert result.status == "Fallback demo"
+    assert fallback_executor.calls == ["SELECT * FROM demo"]
+    assert not primary_executor.calls
+class _QueryStub:
+    def __init__(self, status: str = "OK") -> None:
+        self.calls: list[str] = []
+        self.result = QueryResult(columns=("id",), rows=((1,),), status=status, elapsed_ms=1, row_count=1)
+
+    async def execute(self, profile, sql):  # type: ignore[no-untyped-def]
+        self.calls.append(sql)
+        return self.result

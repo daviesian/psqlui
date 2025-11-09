@@ -8,14 +8,11 @@ from datetime import datetime, timezone
 import random
 import threading
 import time
-from typing import Any, Callable, Coroutine, Mapping, Protocol, Sequence, TYPE_CHECKING, runtime_checkable
+from typing import Any, Callable, Coroutine, Mapping, Protocol, Sequence, runtime_checkable
 
 import asyncpg
 
-if TYPE_CHECKING:  # pragma: no cover - typing helper
-    from .session import ConnectionProfile
-
-MetadataSnapshot = Mapping[str, tuple[str, ...]]
+from .models import ConnectionProfile, MetadataSnapshot
 
 
 class ConnectionBackendError(RuntimeError):
