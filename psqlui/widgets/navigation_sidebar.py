@@ -8,7 +8,10 @@ from typing import Callable
 from textual import events, on
 from textual.app import ComposeResult
 from textual.containers import Container
-from textual.widgets import Label, ListItem, ListView, Static
+from textual.binding import Binding
+from textual.message import Message
+from textual.widget import Widget
+from textual.widgets import Button, Label, ListItem, ListView, Static
 
 from psqlui.session import SessionManager, SessionState
 
@@ -61,14 +64,17 @@ class NavigationSidebar(Container):
         self._profile_items: dict[str, _ProfileListItem] = {}
         self._schemas: Static | None = None
         self._profile_summary: Static | None = None
+        self._context_menu: _ProfileContextMenu | None = None
         self._unsubscribe: Callable[[], None] | None = None
 
     def compose(self) -> ComposeResult:
         yield Static("Connections", classes="sidebar-heading")
         items = [_ProfileListItem(profile.name) for profile in self._session_manager.profiles]
         self._profile_items = {item.profile_name: item for item in items}
-        self._profile_list = ListView(*items, id="profile-list")
+        self._profile_list = _ProfileListView(*items, id="profile-list")
         yield self._profile_list
+        self._context_menu = _ProfileContextMenu(self._handle_profile_action)
+        yield self._context_menu
         self._profile_summary = Static("", id="profile-summary", classes="sidebar-section")
         yield self._profile_summary
         yield Static("Schemas", classes="sidebar-heading")
@@ -133,7 +139,9 @@ class NavigationSidebar(Container):
             return
         item = event.item
         if isinstance(item, _ProfileListItem):
+            self._dismiss_context_menu()
             self._request_switch(item.profile_name)
+            event.stop()
 
     def _request_switch(self, name: str) -> None:
         switcher = getattr(self.app, "switch_profile", None)
@@ -167,6 +175,65 @@ class NavigationSidebar(Container):
         if width > 0:
             remember(width)
 
+    def _handle_profile_action(self, action: str, profile_name: str) -> None:
+        if action == "switch":
+            self._request_switch(profile_name)
+            return
+        if action == "refresh":
+            self._refresh_profile(profile_name)
+
+    def _refresh_profile(self, profile_name: str) -> None:
+        try:
+            self._session_manager.refresh_profile(profile_name)
+        except ValueError as exc:
+            self.notify(str(exc), severity="error")
+
+    def on_mouse_down(self, event: events.MouseDown) -> None:
+        if event.button == 1 and self._context_menu and self._context_menu.is_visible:
+            if not self._context_menu.owns(event.control):
+                self._context_menu.hide()
+
+    def on_key(self, event: events.Key) -> None:
+        if event.key == "m":
+            if self._show_context_menu_for_current():
+                event.stop()
+        elif event.key in {"shift+f10", "f10"}:
+            if self._show_context_menu_for_current():
+                event.stop()
+
+    def on_profile_context_requested(self, event: "_ProfileContextRequested") -> None:
+        if not self._context_menu:
+            return
+        self._context_menu.show(event.profile_name)
+        event.stop()
+
+    def _dismiss_context_menu(self) -> None:
+        if self._context_menu and self._context_menu.is_visible:
+            self._context_menu.hide()
+
+    def _show_context_menu_for_current(self) -> bool:
+        if not self._context_menu or not self._profile_list:
+            return False
+        item = self._profile_list.highlighted_child
+        if not isinstance(item, _ProfileListItem):
+            return False
+        self._context_menu.show(item.profile_name)
+        return True
+
+
+class _ProfileListView(ListView):
+    """ListView with a binding to surface the context menu via keyboard."""
+
+    BINDINGS = ListView.BINDINGS + [
+        Binding("m", "profile_menu", "Profile menu", show=False),
+        Binding("shift+f10", "profile_menu", "Profile menu", show=False),
+    ]
+
+    def action_profile_menu(self) -> None:
+        item = self.highlighted_child
+        if isinstance(item, _ProfileListItem):
+            self.post_message(_ProfileContextRequested(item.profile_name))
+
 
 class _ProfileListItem(ListItem):
     """List item storing a profile name for selection callbacks."""
@@ -174,6 +241,134 @@ class _ProfileListItem(ListItem):
     def __init__(self, name: str) -> None:
         super().__init__(Label(name))
         self.profile_name = name
+
+    def on_mouse_down(self, event: events.MouseDown) -> None:
+        if event.button == 3:
+            event.stop()
+            self.post_message(_ProfileContextRequested(self.profile_name))
+            return
+
+
+class _ProfileContextMenu(Container):
+    """Lightweight inline context menu for connection items."""
+
+    DEFAULT_CSS = """
+    #profile-context-menu {
+        border: round $surface-darken-1;
+        padding: 1;
+        margin-bottom: 1;
+        background: $surface-darken-2;
+    }
+
+    #profile-context-menu .context-title {
+        text-style: bold;
+        margin-bottom: 1;
+    }
+
+    #profile-context-menu Button {
+        width: 1fr;
+        margin-top: 1;
+    }
+    """
+
+    def __init__(self, action_handler: Callable[[str, str], None]) -> None:
+        super().__init__(id="profile-context-menu", classes="sidebar-section")
+        self._on_action = action_handler
+        self._profile_name: str | None = None
+        self._title = Label("", classes="context-title")
+        self._switch_button = Button("Activate profile", id="context-switch", flat=True, compact=True)
+        self._refresh_button = Button("Refresh metadata", id="context-refresh", flat=True, compact=True)
+        self._buttons: tuple[Button, Button] = (self._switch_button, self._refresh_button)
+        self._focused_index = 0
+        self.display = False
+
+    @property
+    def is_visible(self) -> bool:
+        return bool(self.display)
+
+    def compose(self) -> ComposeResult:
+        yield self._title
+        yield self._switch_button
+        yield self._refresh_button
+
+    def show(self, profile_name: str) -> None:
+        self._profile_name = profile_name
+        self._title.update(f"Actions for {profile_name}")
+        self.display = True
+        self._focused_index = 0
+        self.call_later(self._focus_current_button)
+
+    def hide(self) -> None:
+        self.display = False
+        self._profile_name = None
+        self._focused_index = 0
+        self._focus_profile_list()
+
+    def owns(self, widget: Widget | None) -> bool:
+        node = widget
+        while node is not None:
+            if node is self:
+                return True
+            node = getattr(node, "parent", None)
+        return False
+
+    @on(Button.Pressed)
+    def _handle_button_pressed(self, event: Button.Pressed) -> None:
+        if not self._profile_name:
+            return
+        action = None
+        if event.button.id == "context-switch":
+            action = "switch"
+        elif event.button.id == "context-refresh":
+            action = "refresh"
+        if action:
+            self._on_action(action, self._profile_name)
+            self.hide()
+            event.stop()
+
+    def on_key(self, event: events.Key) -> None:
+        if event.key == "escape":
+            self.hide()
+            event.stop()
+            return
+        if event.key == "up":
+            self._move_focus(-1)
+            event.stop()
+            return
+        if event.key == "down":
+            self._move_focus(1)
+            event.stop()
+
+    def _move_focus(self, delta: int) -> None:
+        total = len(self._buttons)
+        if total == 0:
+            return
+        self._focused_index = (self._focused_index + delta) % total
+        self._focus_current_button()
+
+    def _focus_current_button(self) -> None:
+        try:
+            button = self._buttons[self._focused_index]
+        except IndexError:
+            return
+        button.focus()
+
+    def _focus_profile_list(self) -> None:
+        if not self.parent:
+            return
+        try:
+            list_view = self.parent.query_one("#profile-list", ListView)
+        except Exception:  # pragma: no cover - defensive
+            return
+        list_view.focus()
+
+
+class _ProfileContextRequested(Message):
+    """Message emitted when a list item is right-clicked."""
+
+    def __init__(self, profile_name: str) -> None:
+        super().__init__()
+        self.profile_name = profile_name
 
 
 __all__ = ["NavigationSidebar"]

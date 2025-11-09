@@ -5,8 +5,8 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 ## Current Baseline
 - **Repository root**: `/home/ipd21/psqlui`
 - **Primary branch**: `main`
-- **Latest commit**: `40e91a4` — Ensure query pad focus persists
-- **Uncommitted work**: Removal of focus-remembrance behavior (config/schema/widgets/docs updates), sidebar width persistence intact, and this progress log entry.
+- **Latest commit**: `b1e8bfc` — Ensure resize handle spans full height
+- **Uncommitted work**: Inline profile picker context menu + sidebar handle affordances (widgets/session/tests/progress log updates) and this progress log entry.
 
 ## Completed So Far
 1. Created `design/` hub with product overview, architecture, UI flows, roadmap, and ops/quality strategy.
@@ -35,10 +35,12 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 24. Fixed the sidebar resize handler to avoid calling a non-existent parent method (which previously caused the app to exit immediately when Textual emitted a resize event).
 25. Upgraded the simulated connection backend to emit health/latency info so the session manager and status bar can surface realistic connection telemetry.
 26. Rebuilt the navigation sidebar with a profile summary panel plus a draggable resize handle that persists width adjustments between runs.
+27. Added hover/drag affordances to the sidebar resize handle, introduced an inline profile context menu with switch/refresh actions, and taught the session manager (and tests) to refresh non-active profiles.
+28. Wired keyboard shortcuts ("m" / Shift+F10) into the profile list so the context menu is accessible without a mouse, including inline focus/escape handling so the popup behaves like a native terminal menu.
 
 ## Outstanding Tasks
 - Continue Milestone 3 by adding richer sample capabilities (exporters, metadata hooks) and surfacing plugin errors/health in the UI.
-- Finish Milestone 4 wiring: round out the inline profile picker UX (mouse resizing indicators, context menu) and replace demo metadata with a real connection/session cache once that service lands.
+- Finish Milestone 4 wiring by replacing the demo metadata stub with the real connection/session cache once that service lands.
 - Connect SQL intel + plugins to the new connection backend events (propagate refresh/errors) as we swap in a real driver.
 - Track dev workflow docs + onboarding guides alongside code changes.
 

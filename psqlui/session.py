@@ -109,6 +109,15 @@ class SessionManager:
             return
         self._backend.refresh(self._state.profile)
 
+    def refresh_profile(self, name: str) -> None:
+        """Refresh metadata for the requested profile, switching if needed."""
+
+        if self._state and self._state.profile.name == name:
+            self.refresh_active_profile()
+            return
+        self.connect(name)
+        self.refresh_active_profile()
+
     def subscribe(self, listener: SessionListener) -> Callable[[], None]:
         """Subscribe to session updates; returns an unsubscribe handle."""
 

@@ -32,6 +32,19 @@ class SidebarPanel(Container):
         height: 100%;
         min-height: 100%;
         background: $surface-darken-2;
+        color: $text-muted;
+        transition: background 120ms, color 120ms;
+    }
+
+    SidebarResizeHandle.hover {
+        background: $surface-darken-1;
+        color: $text;
+    }
+
+    SidebarResizeHandle.dragging,
+    SidebarPanel.resizing SidebarResizeHandle {
+        background: $primary;
+        color: $text;
     }
     """
 
@@ -62,6 +75,7 @@ class SidebarPanel(Container):
 
     def begin_resize(self, screen_x: int) -> None:
         self._resizing = True
+        self.set_class(True, "resizing")
         self._start_x = screen_x
         self._start_width = self._width
 
@@ -76,6 +90,7 @@ class SidebarPanel(Container):
         if not self._resizing:
             return
         self._resizing = False
+        self.set_class(False, "resizing")
         self._on_width_change(int(self._width))
 
     def _apply_width(self, width: int) -> None:
@@ -92,16 +107,19 @@ class SidebarResizeHandle(Static):
     DEFAULT_CSS = """
     SidebarResizeHandle {
         dock: right;
+        content-align: center middle;
+        text-style: bold;
     }
     """
 
     def __init__(self, panel: SidebarPanel) -> None:
-        super().__init__("", id="sidebar-resize-handle")
+        super().__init__("||", id="sidebar-resize-handle")
         self._panel = panel
 
     def on_mouse_down(self, event: events.MouseDown) -> None:
         self.capture_mouse()
         self._panel.begin_resize(event.screen_x)
+        self.set_class(True, "dragging")
 
     def on_mouse_move(self, event: events.MouseMove) -> None:
         if self._panel.resizing:
@@ -110,6 +128,15 @@ class SidebarResizeHandle(Static):
     def on_mouse_up(self, event: events.MouseUp) -> None:
         self.release_mouse()
         self._panel.end_resize()
+        self.set_class(False, "dragging")
+
+    def on_mouse_enter(self, event: events.MouseEnter) -> None:  # pragma: no cover - UI affordance
+        self.set_class(True, "hover")
+
+    def on_mouse_leave(self, event: events.MouseLeave) -> None:  # pragma: no cover - UI affordance
+        self.set_class(False, "hover")
+        if not self._panel.resizing:
+            self.set_class(False, "dragging")
 
 
 __all__ = ["SidebarPanel"]

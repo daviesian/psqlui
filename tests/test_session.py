@@ -93,3 +93,32 @@ def test_refresh_cycle_updates_metadata() -> None:
     assert lengths[-1] == 2
     assert manager.state.refreshed_at > initial_timestamp
     assert manager.state.status
+
+
+def test_refresh_profile_switches_and_refreshes_non_active_profile() -> None:
+    backend = DemoConnectionBackend(
+        {
+            "demo": (
+                {"public.accounts": ("id",)},
+                {"public.accounts": ("id", "email")},
+            ),
+            "analytics": (
+                {"analytics.events": ("id",)},
+                {"analytics.events": ("id", "payload")},
+            ),
+        }
+    )
+    profiles = [
+        ConnectionProfileConfig(name="Local", metadata_key="demo"),
+        ConnectionProfileConfig(name="Replica", metadata_key="analytics"),
+    ]
+    config = AppConfig(profiles=profiles, active_profile="Local")
+    service = _SqlIntelStub()
+    manager = SessionManager(service, config=config, backend=backend)
+
+    manager.refresh_profile("Replica")
+
+    assert manager.state is not None
+    assert manager.state.profile.name == "Replica"
+    assert manager.state.metadata["analytics.events"] == ("id", "payload")
+    assert service.last_metadata == dict(manager.state.metadata)
