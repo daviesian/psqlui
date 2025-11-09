@@ -126,9 +126,11 @@ class PsqluiApp(App[None]):
         )
         self._query_pad = query_pad
         main_column = Container(query_pad, id="main-column")
-        sidebar_children = self._pane_widgets or [Static("No plugin panes active", id="plugin-pane-empty")]
-        sidebar = Vertical(*sidebar_children, id="plugin-sidebar")
-        yield Horizontal(sidebar_panel, main_column, sidebar, id="content")
+        content_children: list[Widget] = [sidebar_panel, main_column]
+        if self._pane_widgets:
+            sidebar = Vertical(*self._pane_widgets, id="plugin-sidebar")
+            content_children.append(sidebar)
+        yield Horizontal(*content_children, id="content")
         yield StatusBar(self._session_manager)
         yield Footer()
 

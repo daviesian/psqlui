@@ -50,6 +50,12 @@ If a connection attempt fails (bad credentials, network issues, etc.), the app f
 - Successful statements stream the first couple hundred rows into the inline results grid and display elapsed time plus row count alongside the button.
 - When the app is operating in demo fallback mode, the runner returns synthetic rows that match your seeded metadata so you can still validate layouts without a live database.
 
+## Local Sample Database via Docker
+
+- Run `uv run python scripts/setup_sample_db.py` to start a local PostgreSQL container (`postgres:16-alpine`) on port `5543` with sample `accounts` and `orders` tables.
+- The script adds a `Docker Sample` profile to `~/.config/psqlui/config.toml`, pointing at `postgresql://psqlui:psqlui@localhost:5543/psqlui_demo`.
+- Re-run the script if you need to recreate the data; it will reuse the container if it already exists.
+
 ## Troubleshooting
 
 - **Permission denied / auth errors**: Verify the DSN string or supply a `.pgpass` entry that matches the host/database pair.

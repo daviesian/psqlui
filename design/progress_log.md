@@ -42,6 +42,7 @@ Snapshot of key decisions, artifacts, and next actions so the project can resume
 31. Documented real connection profile setup (`docs/connections.md`), including DSN/password guidance and troubleshooting notes, and linked it from the README.
 32. Surfaced backend health + fallback state throughout the session manager/UI, added warning toasts, dispatched metadata hook capabilities for plugins, refreshed docs, and expanded pytest coverage.
 33. Wired the query pad into real execution: added async query executors (asyncpg + demo fallback), session-level `run_query`, a result grid with status badges, docs updates, and regression tests for the new runners.
+34. Added a convenience script (`scripts/setup_sample_db.py`) that launches a Docker-hosted sample Postgres instance, seeds demo data, and adds a ready-to-use profile in `config.toml`.
 
 ## Outstanding Tasks
 - Expand the plugin samples/capabilities (exporters, SQL assistants) and expose richer metadata APIs once the loader stabilizes.
